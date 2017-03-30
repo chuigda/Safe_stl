@@ -27,3 +27,7 @@
 *.exe
 *.out
 *.app
+
+# Projects and configurations
+*.pro
+*.pro.user.*
