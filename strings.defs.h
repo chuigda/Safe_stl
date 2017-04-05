@@ -7,4 +7,10 @@
 #define CONTAINER_COPY\
     "Copying container"
 
+#define ARRAY_OVERFLOW\
+    "Accessing an invalid target"
+
+#define ITERATOR_OVERFLOW\
+    "This iterator is now pointing to an invalid position"
+
 #endif // STRINGS_DEFS_H
