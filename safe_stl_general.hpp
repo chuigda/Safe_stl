@@ -51,7 +51,8 @@ template <typename T>
 typename default_allocator<T>::pointer
 default_allocator<T>::allocate(size_t _n)
 {
-    pointer *ret = std::malloc(_n * sizeof(value_type));
+    pointer ret =
+            reinterpret_cast<pointer>( std::malloc(_n * sizeof(value_type)) );
     if (ret == nullptr) throw std::bad_alloc();
     return ret;
 }

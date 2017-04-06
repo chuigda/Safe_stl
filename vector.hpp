@@ -18,8 +18,8 @@ public:
 
     vector()
     {
-        array = nullptr;
-        capacity = 0;
+        array = alloc.allocate(4);
+        capacity = 4;
         size_val = 0;
     }
 
@@ -216,8 +216,9 @@ private:
             alloc.destroy(&array[i]);
         }
 
-        alloc.deallocate(array);
+        alloc.deallocate(array, capacity);
         array = new_array;
+        capacity *= 2;
     }
 
     Allocator alloc;
