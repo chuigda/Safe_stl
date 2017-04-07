@@ -1,13 +1,13 @@
-﻿#include "testcase_vector.h"
-#include <vector>
+﻿#include <deque>
+#include "testcase_allocator.hpp"
 #include "safe_stl_general.hpp"
 
-void testcase5()
+void testcase()
 {
-    std::printf("Running testcase5\n\n");
+    std::printf("Running testcase for allocator\n\n");
 
     {
-        std::vector<int, std::default_allocator<int>> vec;
+        std::deque<int, std::default_allocator<int>> vec;
 
         vec.push_back(1);
         vec.push_back(2);
@@ -15,7 +15,7 @@ void testcase5()
         vec.pop_back();
         vec.push_back(4);
 
-        std::vector<int, std::default_allocator<int>> another = vec;
+        std::deque<int, std::default_allocator<int>> another = vec;
 
         for (size_t i = 0; i < another.size(); i++)
         {
@@ -25,12 +25,12 @@ void testcase5()
     }
 
     {
-        std::vector<Trace, std::default_allocator<Trace>> vec;
+        std::deque<Trace, std::default_allocator<Trace>> vec;
         vec.push_back(Trace());
         vec.push_back(Trace());
 
-        std::vector<Trace, std::default_allocator<Trace>> another = vec;
-        std::vector<Trace, std::default_allocator<Trace>> that;
+        std::deque<Trace, std::default_allocator<Trace>> another = vec;
+        std::deque<Trace, std::default_allocator<Trace>> that;
 
         that = another;
     }

@@ -30,12 +30,20 @@ public:
     default_allocator() = default;
     default_allocator(const default_allocator&) = default;
     default_allocator(default_allocator&&) = default;
+    template<typename U>
+    default_allocator(const default_allocator<U>&) {}
 
     pointer allocate(size_t _n);
     void deallocate(pointer _p, size_t _n) noexcept;
 
-    void construct(pointer _xptr);
-    void construct(pointer _xptr, const T& _another);
+    // void construct(pointer _xptr);
+
+    template<class U, class... Args>
+    void construct(U* _xptr, Args&&... args)
+    {
+        ::new((void *)_xptr) U(std::forward<Args>(args)...);
+    }
+
     void destroy(pointer _xptr);
 
     bool operator== (const default_allocator&) const noexcept
@@ -52,6 +60,12 @@ public:
     {
         return *this;
     }
+
+    template <typename _other>
+    struct rebind 
+    {
+        typedef default_allocator<_other> other; 
+    };
 };
 
 template <typename T>
@@ -71,20 +85,14 @@ default_allocator<T>::deallocate(pointer _p, size_t) noexcept
     free(_p);
 }
 
-template <typename T>
+/* template <typename T>
 void
 default_allocator<T>::construct(pointer _xptr)
 {
-    new ((void*)_xptr) value_type;
+    ::new ((void*)_xptr) value_type;
 }
 
-template <typename T>
-void
-default_allocator<T>::construct(pointer _xptr, const T &_another)
-{
-    new ((void*)_xptr) value_type(_another);
-}
-
+*/
 template <typename T>
 void
 default_allocator<T>::destroy(pointer _xptr)
