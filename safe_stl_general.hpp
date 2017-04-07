@@ -8,6 +8,7 @@
 #include <new>
 #include <ctime>
 #include <utility>
+#include <initializer_list>
 
 namespace std
 {
