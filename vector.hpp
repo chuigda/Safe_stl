@@ -21,6 +21,8 @@ public:
         array = alloc.allocate(4);
         capacity = 4;
         size_val = 0;
+
+        update_vector();
     }
 
     vector(const vector& _another) :
@@ -36,6 +38,7 @@ public:
         }
 
         size_val = capacity = _another.size_val;
+        update_vector();
     }
 
     vector& operator= (const vector& _another)
@@ -57,6 +60,7 @@ public:
 
         size_val = capacity = _another.size_val;
 
+        update_vector();
         return *this;
     }
 
@@ -71,7 +75,7 @@ public:
 
         _another.capacity = _another.size_val = 0;
 
-        update_time = time(nullptr);
+        update_vector();
     }
 
     ~vector()
@@ -147,10 +151,7 @@ public:
 
     T& operator[] (size_type _index)
     {
-        if (_index >= size_val)
-            stl_panic(ARRAY_OVERFLOW);
-
-        return array[_index];
+        return at(_index);
     }
 
     const T& at(size_type _index) const
@@ -163,10 +164,7 @@ public:
 
     const T& operator[] (size_type _index) const
     {
-        if (_index >= size_val)
-            stl_panic(ARRAY_OVERFLOW);
-
-        return array[_index];
+        return at(_index);
     }
 
     class iterator

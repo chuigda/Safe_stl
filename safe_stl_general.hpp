@@ -30,21 +30,34 @@ public:
     default_allocator() = default;
     default_allocator(const default_allocator&) = default;
     default_allocator(default_allocator&&) = default;
-    template<typename U>
+
+    template <typename U>
     default_allocator(const default_allocator<U>&) {}
 
-    pointer allocate(size_t _n);
-    void deallocate(pointer _p, size_t _n) noexcept;
-
-    // void construct(pointer _xptr);
-
-    template<class U, class... Args>
-    void construct(U* _xptr, Args&&... args)
+    pointer allocate(size_t _n)
     {
-        ::new((void *)_xptr) U(std::forward<Args>(args)...);
+        pointer ret =
+            reinterpret_cast<pointer>( std::malloc(_n * sizeof(value_type)) );
+        if (ret == nullptr) throw std::bad_alloc();
+        return ret;
     }
 
-    void destroy(pointer _xptr);
+    void deallocate(pointer _p, size_t) noexcept
+    {
+        free(_p);
+    }
+
+    template <typename U, typename... Args>
+    void construct(U* _xptr, Args&&... args)
+    {
+        ::new ((void *)_xptr) U(std::forward<Args>(args)...);
+    }
+
+    template <typename U>
+    void destroy(U* _xptr)
+    {
+        _xptr->~value_type();
+    }
 
     bool operator== (const default_allocator&) const noexcept
     {
@@ -61,44 +74,9 @@ public:
         return *this;
     }
 
-    template <typename _other>
-    struct rebind 
-    {
-        typedef default_allocator<_other> other; 
-    };
+    template <typename U>
+    using other = default_allocator<U>;
 };
-
-template <typename T>
-typename default_allocator<T>::pointer
-default_allocator<T>::allocate(size_t _n)
-{
-    pointer ret =
-            reinterpret_cast<pointer>( std::malloc(_n * sizeof(value_type)) );
-    if (ret == nullptr) throw std::bad_alloc();
-    return ret;
-}
-
-template <typename T>
-void
-default_allocator<T>::deallocate(pointer _p, size_t) noexcept
-{
-    free(_p);
-}
-
-/* template <typename T>
-void
-default_allocator<T>::construct(pointer _xptr)
-{
-    ::new ((void*)_xptr) value_type;
-}
-
-*/
-template <typename T>
-void
-default_allocator<T>::destroy(pointer _xptr)
-{
-    _xptr->~value_type();
-}
 
 }
 
