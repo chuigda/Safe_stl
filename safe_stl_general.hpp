@@ -7,6 +7,7 @@
 #include <cstdlib>
 #include <new>
 #include <ctime>
+#include <utility>
 
 namespace std
 {
@@ -44,6 +45,11 @@ public:
     bool operator!= (const default_allocator&) const noexcept
     {
         return false;
+    }
+
+    default_allocator& operator= (const default_allocator&) noexcept
+    {
+        return *this;
     }
 };
 

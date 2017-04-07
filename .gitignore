@@ -30,4 +30,5 @@
 
 # Projects and configurations
 *.pro
+*.pro.user
 *.pro.user.*

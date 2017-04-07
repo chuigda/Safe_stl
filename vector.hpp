@@ -23,7 +23,8 @@ public:
         size_val = 0;
     }
 
-    vector(const vector& _another)
+    vector(const vector& _another) :
+        alloc(_another.alloc)
     {
         stl_warning(CONTAINER_COPY);
 
@@ -37,7 +38,30 @@ public:
         size_val = capacity = _another.size_val;
     }
 
-    vector(vector&& _another)
+    vector& operator= (const vector& _another)
+    {
+        stl_warning(CONTAINER_COPY);
+
+        if (&_another == this)
+        {
+            return *this;
+        }
+
+        alloc = _another.alloc;
+        array = alloc.allocate(_another.size_val);
+
+        for (size_type i = 0; i < _another.size_val; ++i)
+        {
+            alloc.construct(&array[i], _another[i]);
+        }
+
+        size_val = capacity = _another.size_val;
+
+        return *this;
+    }
+
+    vector(vector&& _another) :
+        alloc(std::move(_another.alloc))
     {
         array = _another.array;
         _another.array = nullptr;
@@ -159,7 +183,8 @@ public:
                 stl_panic(OLD_ITERATOR);
             }
 
-            if (ptr == get_from->array[get_from->size_val])
+            if (ptr == &(get_from->array[get_from->size_val])
+                || ptr < &(get_from->array[0]))
             {
                 stl_panic(ITERATOR_OVERFLOW);
             }
@@ -167,7 +192,7 @@ public:
             return *ptr;
         }
 
-        void operator++ () const
+        void operator++ ()
         {
             if (update_time != get_from->update_time)
             {
@@ -175,6 +200,16 @@ public:
             }
 
             ++ptr;
+        }
+
+        void operator-- ()
+        {
+            if (update_time != get_from->update_time)
+            {
+                stl_panic(OLD_ITERATOR);
+            }
+
+            --ptr;
         }
 
         bool operator== (const iterator& _another) const
@@ -195,10 +230,28 @@ public:
         time_t update_time;
     };
 
-    iterator begin();
-    iterator end();
-    iterator rbegin();
-    iterator rend();
+    iterator begin()
+    {
+        iterator it;
+        it.get_from = this;
+        it.ptr = &array[0];
+        it.update_time = update_time;
+
+        return it;
+    }
+
+    iterator end()
+    {
+        iterator it;
+        it.get_from = this;
+        it.ptr = &array[size_val];
+        it.update_time = update_time;
+
+        return it;
+    }
+
+    // iterator rbegin();
+    // iterator rend();
 
 private:
     void update_vector()
