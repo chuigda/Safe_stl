@@ -3,6 +3,7 @@
 
 #include "safe_stl_general.hpp"
 #include "strings.defs.h"
+#include <iterator>
 
 namespace saber
 {
@@ -171,6 +172,11 @@ public:
     class iterator
     {
     public:
+        using value_type = T;
+        using pointer = T*;
+        using size_type = size_t;
+        using difference_type = std::make_signed<size_type>::type;
+
         iterator(const iterator&) = default;
         ~iterator() = default;
 
