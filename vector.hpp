@@ -15,6 +15,7 @@ public:
     using value_type = T;
     using pointer = T*;
     using size_type = size_t;
+    using difference_type = std::make_signed<size_t>::type;
 
     vector()
     {
@@ -98,7 +99,7 @@ public:
         return capacity;
     }
 
-    void shink_to_fit(void) {/* Not implemented */}
+    void shink_to_fit(void) { /* Not implemented */ }
 
     void reserve(size_type _capacity)
     {
@@ -170,24 +171,55 @@ public:
     class iterator
     {
     public:
-        iterator() = default;
         iterator(const iterator&) = default;
         ~iterator() = default;
 
         value_type& operator* ()
+        {
+            return operator[](0);
+        }
+
+        value_type& operator[] (size_type _n)
         {
             if (update_time != get_from->update_time)
             {
                 stl_panic(OLD_ITERATOR);
             }
 
-            if (ptr == &(get_from->array[get_from->size_val])
-                || ptr < &(get_from->array[0]))
+            if (ptr+_n >= &(get_from->array[get_from->size_val])
+                || ptr+_n < &(get_from->array[0]))
             {
                 stl_panic(ITERATOR_OVERFLOW);
             }
 
-            return *ptr;
+            return *(ptr+_n);
+        }
+
+        difference_type operator- (const iterator& _another)
+        {
+            return ptr - _another.ptr;
+        }
+
+        iterator operator+ (size_type _n)
+        {
+            return iterator(get_from, ptr + _n);
+        }
+
+        iterator operator- (size_type _n)
+        {
+            return iterator(get_from, ptr - _n);
+        }
+
+        iterator& operator+= (size_type _n)
+        {
+            ptr += _n;
+            return *this;
+        }
+
+        iterator& operator-= (size_type _n)
+        {
+            ptr -= _n;
+            return *this;
         }
 
         void operator++ ()
@@ -210,18 +242,34 @@ public:
             --ptr;
         }
 
+        bool operator< (const iterator& _another) const
+        {
+            return (ptr < _another.ptr);
+        }
+
+        bool operator> (const iterator& _another) const
+        {
+            return ! operator<(_another);
+        }
+
         bool operator== (const iterator& _another) const
         {
-            return (_another.ptr == ptr);
+            return (ptr == _another.ptr);
         }
 
         bool operator!= (const iterator& _another) const
         {
-            return !operator==(_another);
+            return ! operator==(_another);
         }
 
     private:
         friend class vector;
+
+        iterator(vector* _from, T* _ptr) :
+            get_from(_from),
+            ptr(_ptr),
+            update_time(_from->update_time)
+        {}
 
         vector *get_from;
         T *ptr;
@@ -230,26 +278,13 @@ public:
 
     iterator begin()
     {
-        iterator it;
-        it.get_from = this;
-        it.ptr = &array[0];
-        it.update_time = update_time;
-
-        return it;
+        return iterator(this, &array[0]);
     }
 
     iterator end()
     {
-        iterator it;
-        it.get_from = this;
-        it.ptr = &array[size_val];
-        it.update_time = update_time;
-
-        return it;
+        return iterator(this, &array[size_val]);
     }
-
-    // iterator rbegin();
-    // iterator rend();
 
 private:
     void update_vector()
