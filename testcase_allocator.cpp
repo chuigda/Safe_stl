@@ -7,7 +7,7 @@ void testcase()
     std::printf("Running testcase for allocator\n\n");
 
     {
-        std::deque<int, std::default_allocator<int>> vec;
+        std::deque<int, saber::default_allocator<int>> vec;
 
         vec.push_back(1);
         vec.push_back(2);
@@ -15,7 +15,7 @@ void testcase()
         vec.pop_back();
         vec.push_back(4);
 
-        std::deque<int, std::default_allocator<int>> another = vec;
+        std::deque<int, saber::default_allocator<int>> another = vec;
 
         for (size_t i = 0; i < another.size(); i++)
         {
@@ -25,12 +25,12 @@ void testcase()
     }
 
     {
-        std::deque<Trace, std::default_allocator<Trace>> vec;
+        std::deque<Trace, saber::default_allocator<Trace>> vec;
         vec.push_back(Trace());
         vec.push_back(Trace());
 
-        std::deque<Trace, std::default_allocator<Trace>> another = vec;
-        std::deque<Trace, std::default_allocator<Trace>> that;
+        std::deque<Trace, saber::default_allocator<Trace>> another = vec;
+        std::deque<Trace, saber::default_allocator<Trace>> that;
 
         that = another;
     }

@@ -1,6 +1,6 @@
 ﻿#include "safe_stl_general.hpp"
 
-namespace std
+namespace saber
 {
 
 static FILE *fp = stdin;

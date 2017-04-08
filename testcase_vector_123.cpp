@@ -5,14 +5,14 @@ void testcase1()
 {
     std::printf("Running testcase1\n\n");
 
-    std::vector<int> vec;
+    saber::vector<int> vec;
     vec.push_back(1);
     vec.push_back(2);
     vec.pop_back();
     vec.push_back(3);
 
-    std::vector<int> another = vec;
-    std::vector<int> that;
+    saber::vector<int> another = vec;
+    saber::vector<int> that;
 
     that = vec;
 
@@ -35,12 +35,12 @@ void testcase2()
 {
     std::printf("Running testcase2\n\n");
 
-    std::vector<Trace> vec;
+    saber::vector<Trace> vec;
     vec.push_back(Trace());
     vec.push_back(Trace());
 
-    std::vector<Trace> another = vec;
-    std::vector<Trace> that;
+    saber::vector<Trace> another = vec;
+    saber::vector<Trace> that;
 
     that = another;
 
@@ -51,7 +51,7 @@ void testcase3()
 {
     std::printf("Running testcase3\n\n");
 
-    std::vector<float> vec;
+    saber::vector<float> vec;
     vec.push_back(3);
     vec.push_back(4);
 

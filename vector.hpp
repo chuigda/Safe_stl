@@ -4,7 +4,7 @@
 #include "safe_stl_general.hpp"
 #include "strings.defs.h"
 
-namespace std
+namespace saber
 {
 
 template <typename T,
