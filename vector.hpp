@@ -46,25 +46,8 @@ public:
     iterator end();
 
 private:
-    void update_vector()
-    {
-        update_time = time(nullptr);
-    }
-
-    void auto_increase()
-    {
-        T *new_array = alloc.allocate(capacity * 2);
-
-        for (size_type i = 0; i < size_val; i++)
-        {
-            alloc.construct(&new_array[i], array[i]);
-            alloc.destroy(&array[i]);
-        }
-
-        alloc.deallocate(array, capacity);
-        array = new_array;
-        capacity *= 2;
-    }
+    void update_vector();
+    void auto_increase();
 
     Allocator alloc;
 
@@ -78,7 +61,7 @@ private:
 template <typename T, typename Allocator>
 vector<T, Allocator>::vector()
 {
-    array = alloc.allocate(4);
+    array = allocator_traits<Allocator>::allocate(alloc, 4);
     capacity = 4;
     size_val = 0;
 
@@ -91,11 +74,11 @@ vector<T, Allocator>::vector(const vector &_another) :
 {
     stl_warning(CONTAINER_COPY);
 
-    array = alloc.allocate(_another.size_val);
+    array = allocator_traits<Allocator>::allocate(alloc,_another.size_val);
 
     for (size_type i = 0; i < _another.size_val; ++i)
     {
-        alloc.construct(&array[i], _another[i]);
+        allocator_traits<Allocator>::construct(alloc,&array[i], _another[i]);
     }
 
     size_val = capacity = _another.size_val;
@@ -129,11 +112,10 @@ vector<T, Allocator>::operator=(const vector &_another)
     }
 
     alloc = _another.alloc;
-    array = alloc.allocate(_another.size_val);
-
+    array = allocator_traits<Allocator>::allocate(alloc,_another.size_val);
     for (size_type i = 0; i < _another.size_val; ++i)
     {
-        alloc.construct(&array[i], _another[i]);
+        allocator_traits<Allocator>::construct(alloc,&array[i], _another[i]);
     }
 
     size_val = capacity = _another.size_val;
@@ -167,10 +149,10 @@ vector<T, Allocator>::~vector()
 {
     for (size_type i = 0; i < size_val; ++i)
     {
-        alloc.destroy(&array[i]);
+        allocator_traits<Allocator>::destroy(alloc,&array[i]);
     }
 
-    alloc.deallocate(array, capacity);
+    allocator_traits<Allocator>::deallocate(alloc,array, capacity);
 }
 
 template <typename T, typename Allocator>
@@ -203,18 +185,18 @@ vector<T, Allocator>::reserve(vector::size_type _capacity)
 {
     if (capacity > _capacity) return;
 
-    T *new_array = alloc.allocate(_capacity);
+    T *new_array = allocator_traits<Allocator>::allocate(alloc,_capacity);
     for (size_type i = 0; i < size_val; ++i)
     {
-        alloc.construct(&new_array[i], array[i]);
+        allocator_traits<Allocator>::construct(alloc,&new_array[i], array[i]);
     }
 
     for (size_type i = 0; i < size_val; ++i)
     {
-        alloc.destroy(&array[i]);
+        allocator_traits<Allocator>::destroy(alloc,&array[i]);
     }
 
-    alloc.deallocate(array, capacity);
+    allocator_traits<Allocator>::deallocate(alloc,array, capacity);
     array = new_array;
 
     capacity = _capacity;
@@ -228,7 +210,7 @@ vector<T, Allocator>::push_back(const T &_element)
 {
     if (size_val == capacity) auto_increase();
 
-    alloc.construct(&array[size_val], _element);
+    allocator_traits<Allocator>::construct(alloc,&array[size_val], _element);
     ++size_val;
 
     update_vector();
@@ -238,7 +220,7 @@ template <typename T, typename Allocator>
 void
 vector<T, Allocator>::pop_back()
 {
-    alloc.destroy(&array[size_val-1]);
+    allocator_traits<Allocator>::destroy(alloc,&array[size_val-1]);
     --size_val;
 
     update_vector();
@@ -292,13 +274,37 @@ vector<T, Allocator>::end()
     return iterator(this, &array[size_val]);
 }
 
+template<typename T, typename Allocator>
+void
+vector<T, Allocator>::update_vector()
+{
+    update_time = time(nullptr);
+}
+
+template<typename T, typename Allocator>
+void
+vector<T, Allocator>::auto_increase()
+{
+    T *new_array = allocator_traits<Allocator>::allocate(alloc,capacity * 2);
+
+    for (size_type i = 0; i < size_val; i++)
+    {
+        allocator_traits<Allocator>::construct(alloc,&new_array[i], array[i]);
+        allocator_traits<Allocator>::destroy(alloc,&array[i]);
+    }
+
+    allocator_traits<Allocator>::deallocate(alloc,array, capacity);
+    array = new_array;
+    capacity *= 2;
+}
+
 template <typename T, typename Allocator>
 class vector<T, Allocator>::iterator :
-    public std::iterator<std::random_access_iterator_tag,
-                         value_type,
-                         difference_type,
-                         pointer,
-                         reference>
+        public std::iterator<std::random_access_iterator_tag,
+        value_type,
+        difference_type,
+        pointer,
+        reference>
 {
 public:
     iterator(const iterator&) = default;

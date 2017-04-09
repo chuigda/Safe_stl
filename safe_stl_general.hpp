@@ -9,9 +9,11 @@
 #include <ctime>
 #include <utility>
 #include <initializer_list>
+#include <memory>
 
 namespace saber
 {
+using std::allocator_traits;
 
 FILE*& fp_export(void);
 
@@ -35,49 +37,75 @@ public:
     template <typename U>
     default_allocator(const default_allocator<U>&) {}
 
-    pointer allocate(size_type _n)
-    {
-        pointer ret =
-            reinterpret_cast<pointer>( std::malloc(_n * sizeof(value_type)) );
-        if (ret == nullptr) throw std::bad_alloc();
-        return ret;
-    }
-
-    void deallocate(pointer _p, size_type) noexcept
-    {
-        free(_p);
-    }
+    pointer allocate(size_type _n);
+    void deallocate(pointer _p, size_type) noexcept;
 
     template <typename U, typename... Args>
-    void construct(U* _xptr, Args&&... args)
-    {
-        ::new ((void *)_xptr) U(std::forward<Args>(args)...);
-    }
+    void construct(U* _xptr, Args&&... args);
 
     template <typename U>
-    void destroy(U* _xptr)
-    {
-        _xptr->~value_type();
-    }
+    void destroy(U* _xptr);
 
-    bool operator== (const default_allocator&) const noexcept
-    {
-        return true;
-    }
-
-    bool operator!= (const default_allocator&) const noexcept
-    {
-        return false;
-    }
-
-    default_allocator& operator= (const default_allocator&) noexcept
-    {
-        return *this;
-    }
+    bool operator== (const default_allocator&) const noexcept;
+    bool operator!= (const default_allocator&) const noexcept;
+    default_allocator& operator= (const default_allocator&) noexcept;
 
     template <typename U>
     using other = default_allocator<U>;
 };
+
+template<typename T>
+typename default_allocator<T>::pointer
+default_allocator<T>::allocate(size_type _n)
+{
+    pointer ret =
+            reinterpret_cast<pointer>(::operator new(_n));
+    return ret;
+}
+
+template<typename T>
+void
+default_allocator<T>::deallocate(pointer _p, size_type) noexcept
+{
+    ::operator delete(reinterpret_cast<void*>(_p));
+}
+
+template <typename T>
+template <typename U, typename... Args>
+void
+default_allocator<T>::construct(U *_xptr, Args&& ...args)
+{
+    ::new ((void *)_xptr) U(std::forward<Args>(args)...);
+}
+
+template <typename T>
+template <typename U>
+void
+default_allocator<T>::destroy(U *_xptr)
+{
+    _xptr->~U();
+}
+
+template<typename T>
+bool
+default_allocator<T>::operator==(const default_allocator &) const noexcept
+{
+    return true;
+}
+
+template<typename T>
+bool
+default_allocator<T>::operator!=(const default_allocator &) const noexcept
+{
+    return false;
+}
+
+template<typename T>
+default_allocator<T>&
+default_allocator<T>::operator=(const default_allocator &) noexcept
+{
+    return *this;
+}
 
 }
 
