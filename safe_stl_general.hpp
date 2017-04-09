@@ -25,7 +25,8 @@ class default_allocator
 public:
     using value_type = T;
     using pointer = T*;
-    using const_pointer = const T*;
+    using size_type = std::size_t;
+    using difference_type = std::ptrdiff_t;
 
     default_allocator() = default;
     default_allocator(const default_allocator&) = default;
@@ -34,7 +35,7 @@ public:
     template <typename U>
     default_allocator(const default_allocator<U>&) {}
 
-    pointer allocate(size_t _n)
+    pointer allocate(size_type _n)
     {
         pointer ret =
             reinterpret_cast<pointer>( std::malloc(_n * sizeof(value_type)) );
@@ -42,7 +43,7 @@ public:
         return ret;
     }
 
-    void deallocate(pointer _p, size_t) noexcept
+    void deallocate(pointer _p, size_type) noexcept
     {
         free(_p);
     }

@@ -1,5 +1,7 @@
-#ifndef TRACER_HPP
+﻿#ifndef TRACER_HPP
 #define TRACER_HPP
+
+#include <cstdio>
 
 class Trace
 {
