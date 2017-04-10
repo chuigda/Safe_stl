@@ -59,7 +59,7 @@ typename default_allocator<T>::pointer
 default_allocator<T>::allocate(size_type _n)
 {
     pointer ret =
-            reinterpret_cast<pointer>(::operator new(_n));
+            reinterpret_cast<pointer>(::operator new[](sizeof(T) * _n));
     return ret;
 }
 
@@ -67,7 +67,7 @@ template<typename T>
 void
 default_allocator<T>::deallocate(pointer _p, size_type) noexcept
 {
-    ::operator delete(reinterpret_cast<void*>(_p));
+    ::operator delete[] (reinterpret_cast<void*>(_p));
 }
 
 template <typename T>

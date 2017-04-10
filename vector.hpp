@@ -4,6 +4,7 @@
 #include "safe_stl_general.hpp"
 #include "strings.defs.h"
 #include <iterator>
+#include <limits>
 
 namespace saber
 {
@@ -12,12 +13,19 @@ template <typename T,
           typename Allocator = default_allocator<T>>
 class vector
 {
+    static_assert(std::is_copy_constructible<T>::value, ELEM_COPY_CONSTRUCT_ERROR);
+    static_assert(std::is_destructible<T>::value, ELEM_DESTROY_ERROR);
+
 public:
     using value_type = T;
     using pointer = T*;
     using reference = T&;
+    using const_reference = const T&;
     using size_type = size_t;
     using difference_type = std::ptrdiff_t;
+
+    class iterator;
+    class const_iterator;
 
     vector();
     vector(const vector& _another);
@@ -29,33 +37,39 @@ public:
 
     size_type size() const;
     size_type max_size() const;
+    bool empty() const;
 
     void shink_to_fit(void);
     void reserve(size_type _capacity);
     void push_back(const T& _element);
     void pop_back(void);
+    template<typename... Args> void emplace_back(Args... _args);
+    void clear(void);
 
-    T& at(size_type _index);
-    T& operator[] (size_type _index);
-    const T& at(size_type _index) const;
-    const T& operator[] (size_type _index) const;
-
-    class iterator;
+    reference at(size_type _index);
+    reference operator[] (size_type _index);
+    const_reference at(size_type _index) const;
+    const_reference operator[] (size_type _index) const;
 
     iterator begin();
     iterator end();
+
+    const_iterator begin() const;
+    const_iterator end() const;
+
+    const_iterator cbegin() const;
+    const_iterator cend() const;
 
 private:
     void update_vector();
     void auto_increase();
 
     Allocator alloc;
-
     T *array;
-    time_t update_time;
-
     size_type capacity;
     size_type size_val;
+
+    size_t update_count = 0;
 };
 
 template <typename T, typename Allocator>
@@ -111,8 +125,14 @@ vector<T, Allocator>::operator=(const vector &_another)
         return *this;
     }
 
+    for (size_type i = 0; i < size_val; ++i)
+    {
+        allocator_traits<Allocator>::destroy(alloc, &array[i]);
+    }
+    allocator_traits<Allocator>::deallocate(alloc, array, capacity);
+
     alloc = _another.alloc;
-    array = allocator_traits<Allocator>::allocate(alloc,_another.size_val);
+    array = allocator_traits<Allocator>::allocate(alloc, _another.size_val);
     for (size_type i = 0; i < _another.size_val; ++i)
     {
         allocator_traits<Allocator>::construct(alloc,&array[i], _another[i]);
@@ -133,6 +153,12 @@ vector<T, Allocator>::operator =(vector&& _another)
         return *this;
     }
 
+    for (size_type i = 0; i < size_val; ++i)
+    {
+        allocator_traits<Allocator>::destroy(alloc, &array[i]);
+    }
+    allocator_traits<Allocator>::deallocate(alloc, array, capacity);
+
     alloc = std::move(_another.alloc);
     array = _another.array;
 
@@ -152,7 +178,7 @@ vector<T, Allocator>::~vector()
         allocator_traits<Allocator>::destroy(alloc,&array[i]);
     }
 
-    allocator_traits<Allocator>::deallocate(alloc,array, capacity);
+    allocator_traits<Allocator>::deallocate(alloc, array, capacity);
 }
 
 template <typename T, typename Allocator>
@@ -166,7 +192,14 @@ template <typename T, typename Allocator>
 typename vector<T, Allocator>::size_type
 vector<T, Allocator>::max_size() const
 {
-    return capacity;
+    return std::numeric_limits<size_type>::max();
+}
+
+template<typename T, typename Allocator>
+bool
+vector<T, Allocator>::empty() const
+{
+    return size_val;
 }
 
 template <typename T, typename Allocator>
@@ -210,7 +243,7 @@ vector<T, Allocator>::push_back(const T &_element)
 {
     if (size_val == capacity) auto_increase();
 
-    allocator_traits<Allocator>::construct(alloc,&array[size_val], _element);
+    allocator_traits<Allocator>::construct(alloc, &array[size_val], _element);
     ++size_val;
 
     update_vector();
@@ -220,14 +253,41 @@ template <typename T, typename Allocator>
 void
 vector<T, Allocator>::pop_back()
 {
-    allocator_traits<Allocator>::destroy(alloc,&array[size_val-1]);
+    allocator_traits<Allocator>::destroy(alloc, &array[size_val-1]);
     --size_val;
 
     update_vector();
 }
 
+
 template <typename T, typename Allocator>
-T&
+template <typename... Args>
+void
+vector<T, Allocator>::emplace_back(Args... _args)
+{
+    if (size_val == capacity) auto_increase();
+
+    allocator_traits<Allocator>::construct(alloc, &array[size_val], _args...);
+    ++size_val;
+
+    update_vector();
+}
+
+template<typename T, typename Allocator>
+void
+vector<T, Allocator>::clear()
+{
+    for (size_type i = 0; i < size_val; ++i)
+    {
+        allocator_traits<Allocator>::destroy(alloc, array[i]);
+    }
+
+    size_val = 0;
+    update_vector();
+}
+
+template <typename T, typename Allocator>
+typename vector<T, Allocator>::reference
 vector<T, Allocator>::at(vector::size_type _index)
 {
     if (_index >= size_val)
@@ -237,14 +297,14 @@ vector<T, Allocator>::at(vector::size_type _index)
 }
 
 template <typename T, typename Allocator>
-T&
+typename vector<T, Allocator>::reference
 vector<T, Allocator>::operator[](vector::size_type _index)
 {
     return at(_index);
 }
 
 template <typename T, typename Allocator>
-const T&
+typename vector<T, Allocator>::const_reference
 vector<T, Allocator>::at(vector::size_type _index) const
 {
     if (_index >= size_val)
@@ -254,7 +314,7 @@ vector<T, Allocator>::at(vector::size_type _index) const
 }
 
 template <typename T, typename Allocator>
-const T&
+typename vector<T, Allocator>::const_reference
 vector<T, Allocator>::operator[](vector::size_type _index) const
 {
     return at(_index);
@@ -274,11 +334,32 @@ vector<T, Allocator>::end()
     return iterator(this, &array[size_val]);
 }
 
+template <typename T, typename Allocator>
+typename vector<T, Allocator>::const_iterator
+vector<T, Allocator>::cbegin() const
+{
+    return const_iterator(this, &array[0]);
+}
+
+template <typename T, typename Allocator>
+typename vector<T, Allocator>::const_iterator
+vector<T, Allocator>::cend() const
+{
+    return const_iterator(this, &array[size_val]);
+}
+
 template<typename T, typename Allocator>
 void
 vector<T, Allocator>::update_vector()
 {
-    update_time = time(nullptr);
+    if (update_count != std::numeric_limits<size_t>::max())
+    {
+        update_count++;
+    }
+    else
+    {
+        update_count = 0;
+    }
 }
 
 template<typename T, typename Allocator>
@@ -296,29 +377,37 @@ vector<T, Allocator>::auto_increase()
     allocator_traits<Allocator>::deallocate(alloc,array, capacity);
     array = new_array;
     capacity *= 2;
+
+    update_vector();
 }
 
 template <typename T, typename Allocator>
 class vector<T, Allocator>::iterator :
         public std::iterator<std::random_access_iterator_tag,
-        value_type,
-        difference_type,
-        pointer,
-        reference>
+                             value_type,
+                             difference_type,
+                             pointer,
+                             reference>
 {
 public:
+    using const_reference = const value_type&;
+
     iterator(const iterator&) = default;
     ~iterator() = default;
 
-    value_type& operator* ();
-    value_type& operator[] (size_type _n);
-    difference_type operator- (const iterator& _another);
-    iterator operator+ (size_type _n);
-    iterator operator- (size_type _n);
+    reference operator* ();
+    reference operator[] (size_type _n);
+    const_reference operator* () const;
+    const_reference operator[] (size_type _n) const;
+
     iterator& operator+= (size_type _n);
     iterator& operator-= (size_type _n);
     iterator& operator++ ();
     iterator& operator-- ();
+
+    iterator operator+ (size_type _n);
+    iterator operator- (size_type _n);
+    difference_type operator- (const iterator& _another) const;
     bool operator< (const iterator& _another) const;
     bool operator> (const iterator& _another) const;
     bool operator== (const iterator& _another) const;
@@ -327,46 +416,70 @@ public:
 private:
     friend class vector;
 
-    iterator(vector* _from, T* _ptr) :
+    iterator(vector* _from, value_type* _ptr) :
         get_from(_from),
         ptr(_ptr),
-        update_time(_from->update_time)
+        update_count(_from->update_count)
     {}
 
+    void version_check() const
+    {
+        if (update_count != get_from->update_count)
+        {
+            stl_panic(OLD_ITERATOR);
+        }
+    }
+
+    void boundary_check(difference_type _offset) const
+    {
+        if (ptr+_offset >= &(get_from->array[get_from->size_val])
+                || ptr+_offset < &(get_from->array[0]))
+        {
+            stl_panic(ITERATOR_OVERFLOW);
+        }
+    }
+
     vector *get_from;
-    T *ptr;
-    time_t update_time;
+    value_type *ptr;
+    size_t update_count;
 };
 
 template<typename T, typename Allocator>
-typename vector<T, Allocator>::value_type&
-vector<T, Allocator>::iterator::operator*()
+typename vector<T, Allocator>::reference
+vector<T, Allocator>::iterator::operator* ()
 {
     return operator[](0);
 }
 
 template<typename T, typename Allocator>
-typename vector<T, Allocator>::value_type&
+typename vector<T, Allocator>::reference
 vector<T, Allocator>::iterator::operator[](size_type _n)
 {
-    if (update_time != get_from->update_time)
-    {
-        stl_panic(OLD_ITERATOR);
-    }
-
-    if (ptr+_n >= &(get_from->array[get_from->size_val])
-            || ptr+_n < &(get_from->array[0]))
-    {
-        stl_panic(ITERATOR_OVERFLOW);
-    }
-
+    version_check();
+    boundary_check(_n);
     return *(ptr+_n);
+}
+
+template <typename T, typename Allocator>
+typename vector<T, Allocator>::const_reference
+vector<T, Allocator>::iterator::operator* () const
+{
+    return operator[](0);
+}
+
+template<typename T, typename Allocator>
+typename vector<T, Allocator>::const_reference
+vector<T, Allocator>::iterator::operator[](size_type _n) const
+{
+    version_check();
+    boundary_check(_n);
+    return const_cast<const_reference>(*(ptr+_n));
 }
 
 template<typename T, typename Allocator>
 typename vector<T, Allocator>::difference_type
 vector<T, Allocator>::iterator::operator-
-    (const saber::vector<T, Allocator>::iterator &_another)
+    (const saber::vector<T, Allocator>::iterator &_another) const
 {
     return ptr - _another.ptr;
 }
@@ -389,6 +502,7 @@ template<typename T, typename Allocator>
 typename vector<T, Allocator>::iterator&
 vector<T, Allocator>::iterator::operator+=(size_type _n)
 {
+    version_check();
     ptr += _n;
     return *this;
 }
@@ -397,6 +511,7 @@ template<typename T, typename Allocator>
 typename vector<T, Allocator>::iterator&
 vector<T, Allocator>::iterator::operator-=(size_type _n)
 {
+    version_check();
     ptr -= _n;
     return *this;
 }
@@ -405,11 +520,7 @@ template<typename T, typename Allocator>
 typename vector<T, Allocator>::iterator&
 vector<T, Allocator>::iterator::operator++()
 {
-    if (update_time != get_from->update_time)
-    {
-        stl_panic(OLD_ITERATOR);
-    }
-
+    version_check();
     ++ptr;
 
     return *this;
@@ -419,11 +530,7 @@ template<typename T, typename Allocator>
 typename vector<T, Allocator>::iterator&
 saber::vector<T, Allocator>::iterator::operator--()
 {
-    if (update_time != get_from->update_time)
-    {
-        stl_panic(OLD_ITERATOR);
-    }
-
+    version_check();
     --ptr;
 
     return *this;
@@ -457,6 +564,178 @@ bool vector<T, Allocator>::iterator::operator!=
     return ! operator==(_another);
 }
 
+template <typename T, typename Allocator>
+class vector<T, Allocator>::const_iterator :
+        public std::iterator<std::random_access_iterator_tag,
+                             value_type,
+                             difference_type,
+                             pointer,
+                             reference>
+{
+public:
+    using const_reference = const value_type&;
+
+    const_iterator(const const_iterator&) = default;
+    ~const_iterator() = default;
+
+    const_reference operator* ();
+    const_reference operator[] (size_type _index);
+
+    const_iterator& operator+= (size_type _n);
+    const_iterator& operator-= (size_type _n);
+    const_iterator& operator++ ();
+    const_iterator& operator-- ();
+
+    const_iterator operator+ (size_type _n);
+    const_iterator operator- (size_type _n);
+    difference_type operator- (const const_iterator& _another) const;
+
+    bool operator< (const const_iterator& _another) const;
+    bool operator> (const const_iterator& _another) const;
+    bool operator== (const const_iterator& _another) const;
+    bool operator!= (const const_iterator& _another) const;
+
+private:
+    friend class vector;
+
+    const_iterator(const vector* _from, const value_type* _ptr) :
+        get_from(_from),
+        ptr(_ptr),
+        update_count(_from->update_count)
+    {}
+
+    void version_check() const
+    {
+        if (update_count != get_from->update_count)
+        {
+            stl_panic(OLD_ITERATOR);
+        }
+    }
+
+    void boundary_check(difference_type _offset) const
+    {
+        if (ptr+_offset >= &(get_from->array[get_from->size_val])
+                || ptr+_offset < &(get_from->array[0]))
+        {
+            stl_panic(ITERATOR_OVERFLOW);
+        }
+    }
+
+    const vector *get_from;
+    const value_type *ptr;
+    size_t update_count;
+};
+
+template <typename T, typename Allocator>
+typename vector<T, Allocator>::const_reference
+vector<T, Allocator>::const_iterator::operator* ()
+{
+    return operator[](0);
 }
 
+template <typename T, typename Allocator>
+typename vector<T, Allocator>::const_reference
+vector<T, Allocator>::const_iterator::operator[] (size_type _n)
+{
+    version_check();
+    boundary_check(_n);
+    return *(ptr+_n);
+}
+
+template <typename T, typename Allocator>
+typename vector<T, Allocator>::const_iterator&
+vector<T, Allocator>::const_iterator::operator+= (size_type _n)
+{
+    version_check();
+
+    ptr += _n;
+    return *this;
+}
+
+template <typename T, typename Allocator>
+typename vector<T, Allocator>::const_iterator&
+vector<T, Allocator>::const_iterator::operator-= (size_type _n)
+{
+    version_check();
+
+    ptr -= _n;
+    return *this;
+}
+
+template <typename T, typename Allocator>
+typename vector<T, Allocator>::const_iterator&
+vector<T, Allocator>::const_iterator::operator++ ()
+{
+    version_check();
+    ++ptr;
+
+    return *this;
+}
+
+
+template <typename T, typename Allocator>
+typename vector<T, Allocator>::const_iterator&
+vector<T, Allocator>::const_iterator::operator--()
+{
+    version_check();
+    ++ptr;
+
+    return *this;
+}
+
+template <typename T, typename Allocator>
+typename vector<T, Allocator>::const_iterator
+vector<T, Allocator>::const_iterator::operator+ (size_type _n)
+{
+    return iterator(get_from, ptr + _n);
+}
+
+template <typename T, typename Allocator>
+typename vector<T, Allocator>::const_iterator
+vector<T, Allocator>::const_iterator::operator- (size_type _n)
+{
+    return iterator(get_from, ptr - _n);
+}
+
+template <typename T, typename Allocator>
+typename vector<T, Allocator>::difference_type
+vector<T, Allocator>::const_iterator::operator-
+    (const const_iterator& _another) const
+{
+    return ptr - _another.ptr;
+}
+
+template <typename T, typename Allocator>
+bool
+vector<T, Allocator>::const_iterator::operator<
+    (const const_iterator& _another) const
+{
+    return (ptr < _another.ptr);
+}
+
+template <typename T, typename Allocator>
+bool
+vector<T, Allocator>::const_iterator::operator>
+    (const const_iterator& _another) const
+{
+    return ! operator<(_another);
+}
+
+template <typename T, typename Allocator>
+bool
+vector<T, Allocator>::const_iterator::operator==
+    (const const_iterator& _another) const
+{
+    return (ptr == _another.ptr);
+}
+
+template <typename T, typename Allocator>
+bool
+vector<T, Allocator>::const_iterator::operator!=
+    (const const_iterator& _another) const
+{
+    return ! operator==(_another);
+}
+
+}
 #endif // VECTOR_HPP

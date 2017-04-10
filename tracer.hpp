@@ -11,4 +11,13 @@ public:
     ~Trace() { std::printf("~Trace() at %p\n", this); }
 };
 
+class NoCopy
+{
+public:
+    NoCopy() = default;
+    ~NoCopy() = default;
+private:
+    NoCopy(const NoCopy&);
+};
+
 #endif

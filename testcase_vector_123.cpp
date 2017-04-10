@@ -55,13 +55,13 @@ void testcase3()
     vec.push_back(3);
     vec.push_back(4);
 
-    for (auto it = vec.begin(); it != vec.end(); ++it)
+    for (auto it = vec.cbegin(); it != vec.cend(); ++it)
     {
         std::printf("%f ", *it);
     }
     putchar('\n');
 
-    for (auto &it : vec)
+    for (const auto &it : vec)
     {
         std::printf("%f ", it);
     }

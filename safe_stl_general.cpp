@@ -3,7 +3,7 @@
 namespace saber
 {
 
-static FILE *fp = stdin;
+static FILE *fp = stdout;
 
 FILE *& fp_export(void)
 {
