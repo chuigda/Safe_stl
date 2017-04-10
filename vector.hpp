@@ -3,7 +3,6 @@
 
 #include "safe_stl_general.hpp"
 #include "strings.defs.h"
-#include <iterator>
 #include <limits>
 
 namespace saber
@@ -13,8 +12,10 @@ template <typename T,
           typename Allocator = default_allocator<T>>
 class vector
 {
-    static_assert(std::is_copy_constructible<T>::value, ELEM_COPY_CONSTRUCT_ERROR);
-    static_assert(std::is_destructible<T>::value, ELEM_DESTROY_ERROR);
+    static_assert(std::is_copy_constructible<T>::value,
+                  ELEM_COPY_CONSTRUCT_ERROR);
+    static_assert(std::is_destructible<T>::value,
+                  ELEM_DESTROY_ERROR);
 
 public:
     using value_type = T;
@@ -74,15 +75,15 @@ private:
 
 
 template <typename T, typename Allocator>
-class vector<T, Allocator>::iterator :
-    public std::iterator<std::random_access_iterator_tag,
-    value_type,
-    difference_type,
-    pointer,
-    reference>
+class vector<T, Allocator>::iterator
 {
 public:
-    using const_reference = const value_type&;
+    using iterator_category = std::random_access_iterator_tag;
+    using value_type = vector::value_type;
+    using difference_type = vector::difference_type;
+    using pointer = vector::pointer;
+    using reference = vector::reference;
+    using const_reference = vector::const_reference;
 
     iterator(const iterator&) = default;
     ~iterator() = default;
@@ -141,15 +142,15 @@ private:
 
 
 template <typename T, typename Allocator>
-class vector<T, Allocator>::const_iterator :
-    public std::iterator<std::random_access_iterator_tag,
-    value_type,
-    difference_type,
-    pointer,
-    reference>
+class vector<T, Allocator>::const_iterator
 {
 public:
-    using const_reference = const value_type&;
+    using iterator_category = std::random_access_iterator_tag;
+    using value_type = vector::value_type;
+    using difference_type = vector::difference_type;
+    using pointer = vector::pointer;
+    using reference = vector::reference;
+    using const_reference = vector::const_reference;
 
     const_iterator(const const_iterator&) = default;
     ~const_iterator() = default;
