@@ -4,6 +4,7 @@
 #include "safe_stl_general.hpp"
 #include "strings.defs.h"
 #include <limits>
+#include <iterator>
 
 namespace saber
 {
@@ -18,11 +19,11 @@ class vector
                   ELEM_DESTROY_ERROR);
 
 public:
-    using value_type = T;
-    using pointer = T*;
-    using reference = T&;
+    using value_type      = T;
+    using pointer         = T*;
+    using reference       = T&;
     using const_reference = const T&;
-    using size_type = size_t;
+    using size_type       = size_t;
     using difference_type = std::ptrdiff_t;
 
     class iterator;
@@ -78,11 +79,11 @@ class vector<T, Allocator>::iterator
 {
 public:
     using iterator_category = std::random_access_iterator_tag;
-    using value_type = vector::value_type;
-    using difference_type = vector::difference_type;
-    using pointer = vector::pointer;
-    using reference = vector::reference;
-    using const_reference = vector::const_reference;
+    using value_type        = typename vector::value_type;
+    using difference_type   = typename vector::difference_type;
+    using pointer           = typename vector::pointer;
+    using reference         = typename vector::reference;
+    using const_reference   = typename vector::const_reference;
 
     iterator(const iterator&) = default;
     ~iterator() = default;
@@ -147,11 +148,11 @@ class vector<T, Allocator>::const_iterator
 {
 public:
     using iterator_category = std::random_access_iterator_tag;
-    using value_type = vector::value_type;
-    using difference_type = vector::difference_type;
-    using pointer = vector::pointer;
-    using reference = vector::reference;
-    using const_reference = vector::const_reference;
+    using value_type        = typename vector::value_type;
+    using difference_type   = typename vector::difference_type;
+    using pointer           = typename vector::pointer;
+    using reference         = typename vector::reference;
+    using const_reference   = typename vector::const_reference;
 
     const_iterator(const const_iterator&) = default;
     ~const_iterator() = default;
