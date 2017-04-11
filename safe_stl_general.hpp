@@ -37,7 +37,7 @@ public:
     template <typename U>
     default_allocator(const default_allocator<U>&) {}
 
-    pointer allocate(size_type _n);
+    pointer allocate(size_type _n, const void * = 0);
     void deallocate(pointer _p, size_type) noexcept;
 
     template <typename U, typename... Args>
@@ -56,7 +56,7 @@ public:
 
 template<typename T>
 typename default_allocator<T>::pointer
-default_allocator<T>::allocate(size_type _n)
+default_allocator<T>::allocate(size_type _n, const void*)
 {
     pointer ret =
             reinterpret_cast<pointer>(::operator new[](sizeof(T) * _n));

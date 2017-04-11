@@ -73,7 +73,6 @@ private:
     size_t update_count = 0;
 };
 
-
 template <typename T, typename Allocator>
 class vector<T, Allocator>::iterator
 {
@@ -105,6 +104,8 @@ public:
     difference_type operator- (const iterator& _another) const;
     bool operator< (const iterator& _another) const;
     bool operator> (const iterator& _another) const;
+    bool operator<= (const iterator& _another) const;
+    bool operator>= (const iterator& _another) const;
     bool operator== (const iterator& _another) const;
     bool operator!= (const iterator& _another) const;
 
@@ -171,6 +172,8 @@ public:
 
     bool operator< (const const_iterator& _another) const;
     bool operator> (const const_iterator& _another) const;
+    bool operator<= (const const_iterator& _another) const;
+    bool operator>= (const const_iterator& _another) const;
     bool operator== (const const_iterator& _another) const;
     bool operator!= (const const_iterator& _another) const;
 
@@ -330,7 +333,7 @@ vector<T, Allocator>::max_size() const
     return std::numeric_limits<size_type>::max();
 }
 
-template<typename T, typename Allocator>
+template <typename T, typename Allocator>
 bool
 vector<T, Allocator>::empty() const
 {
@@ -408,7 +411,7 @@ vector<T, Allocator>::emplace_back(Args... _args)
     update_vector();
 }
 
-template<typename T, typename Allocator>
+template <typename T, typename Allocator>
 void
 vector<T, Allocator>::clear()
 {
@@ -483,7 +486,7 @@ vector<T, Allocator>::cend() const
     return const_iterator(this, &array[size_val]);
 }
 
-template<typename T, typename Allocator>
+template <typename T, typename Allocator>
 void
 vector<T, Allocator>::update_vector()
 {
@@ -497,7 +500,7 @@ vector<T, Allocator>::update_vector()
     }
 }
 
-template<typename T, typename Allocator>
+template <typename T, typename Allocator>
 void
 vector<T, Allocator>::auto_increase()
 {
@@ -518,14 +521,14 @@ vector<T, Allocator>::auto_increase()
 
 
 
-template<typename T, typename Allocator>
+template <typename T, typename Allocator>
 typename vector<T, Allocator>::iterator::reference
 vector<T, Allocator>::iterator::operator* ()
 {
     return operator[](0);
 }
 
-template<typename T, typename Allocator>
+template <typename T, typename Allocator>
 typename vector<T, Allocator>::iterator::reference
 vector<T, Allocator>::iterator::operator[](size_type _n)
 {
@@ -541,7 +544,7 @@ vector<T, Allocator>::iterator::operator* () const
     return operator[](0);
 }
 
-template<typename T, typename Allocator>
+template <typename T, typename Allocator>
 typename vector<T, Allocator>::iterator::const_reference
 vector<T, Allocator>::iterator::operator[](size_type _n) const
 {
@@ -550,7 +553,7 @@ vector<T, Allocator>::iterator::operator[](size_type _n) const
     return const_cast<const_reference>(*(ptr+_n));
 }
 
-template<typename T, typename Allocator>
+template <typename T, typename Allocator>
 typename vector<T, Allocator>::iterator::difference_type
 vector<T, Allocator>::iterator::operator-
     (const iterator &_another) const
@@ -558,21 +561,21 @@ vector<T, Allocator>::iterator::operator-
     return ptr - _another.ptr;
 }
 
-template<typename T, typename Allocator>
+template <typename T, typename Allocator>
 typename vector<T, Allocator>::iterator
 vector<T, Allocator>::iterator::operator+(size_type _n)
 {
     return iterator(get_from, ptr + _n);
 }
 
-template<typename T, typename Allocator>
+template <typename T, typename Allocator>
 typename vector<T, Allocator>::iterator
 vector<T, Allocator>::iterator::operator-(size_type _n)
 {
     return iterator(get_from, ptr - _n);
 }
 
-template<typename T, typename Allocator>
+template <typename T, typename Allocator>
 typename vector<T, Allocator>::iterator&
 vector<T, Allocator>::iterator::operator+=(size_type _n)
 {
@@ -581,7 +584,7 @@ vector<T, Allocator>::iterator::operator+=(size_type _n)
     return *this;
 }
 
-template<typename T, typename Allocator>
+template <typename T, typename Allocator>
 typename vector<T, Allocator>::iterator&
 vector<T, Allocator>::iterator::operator-=(size_type _n)
 {
@@ -590,7 +593,7 @@ vector<T, Allocator>::iterator::operator-=(size_type _n)
     return *this;
 }
 
-template<typename T, typename Allocator>
+template <typename T, typename Allocator>
 typename vector<T, Allocator>::iterator&
 vector<T, Allocator>::iterator::operator++()
 {
@@ -600,7 +603,7 @@ vector<T, Allocator>::iterator::operator++()
     return *this;
 }
 
-template<typename T, typename Allocator>
+template <typename T, typename Allocator>
 typename vector<T, Allocator>::iterator&
 vector<T, Allocator>::iterator::operator--()
 {
@@ -628,29 +631,49 @@ vector<T, Allocator>::iterator::operator--(int)
     return ret;
 }
 
-template<typename T, typename Allocator>
-bool vector<T, Allocator>::iterator::operator<
+template <typename T, typename Allocator>
+bool
+vector<T, Allocator>::iterator::operator<
     (const iterator &_another) const
 {
     return (ptr < _another.ptr);
 }
 
-template<typename T, typename Allocator>
-bool vector<T, Allocator>::iterator::operator>
+template <typename T, typename Allocator>
+bool
+vector<T, Allocator>::iterator::operator>
+    (const iterator &_another) const
+{
+    return (ptr > _another.ptr);
+}
+
+template <typename T, typename Allocator>
+bool
+vector<T, Allocator>::iterator::operator<=
+    (const iterator &_another) const
+{
+    return ! operator>(_another);
+}
+
+template <typename T, typename Allocator>
+bool
+vector<T, Allocator>::iterator::operator>=
     (const iterator &_another) const
 {
     return ! operator<(_another);
 }
 
-template<typename T, typename Allocator>
-bool vector<T, Allocator>::iterator::operator==
+template <typename T, typename Allocator>
+bool
+vector<T, Allocator>::iterator::operator==
     (const iterator &_another) const
 {
     return (ptr == _another.ptr);
 }
 
-template<typename T, typename Allocator>
-bool vector<T, Allocator>::iterator::operator!=
+template <typename T, typename Allocator>
+bool
+vector<T, Allocator>::iterator::operator!=
     (const iterator &_another) const
 {
     return ! operator==(_another);
@@ -763,6 +786,22 @@ vector<T, Allocator>::const_iterator::operator<
 template <typename T, typename Allocator>
 bool
 vector<T, Allocator>::const_iterator::operator>
+    (const const_iterator& _another) const
+{
+    return (ptr > _another.ptr);
+}
+
+template <typename T, typename Allocator>
+bool
+vector<T, Allocator>::const_iterator::operator<=
+    (const const_iterator& _another) const
+{
+    return ! operator>(_another);
+}
+
+template <typename T, typename Allocator>
+bool
+vector<T, Allocator>::const_iterator::operator>=
     (const const_iterator& _another) const
 {
     return ! operator<(_another);
