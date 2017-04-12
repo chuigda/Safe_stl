@@ -13,10 +13,8 @@ template <typename T,
           typename Allocator = default_allocator<T>>
 class vector
 {
-    static_assert(std::is_copy_constructible<T>::value,
-                  ELEM_COPY_CONSTRUCT_ERROR);
-    static_assert(std::is_destructible<T>::value,
-                  ELEM_DESTROY_ERROR);
+    static_assert(std::is_copy_constructible<T>::value, ELEM_COPY_CONSTRUCT_ERROR);
+    static_assert(std::is_destructible<T>::value, ELEM_DESTROY_ERROR);
 
 public:
     using value_type      = T;
@@ -89,19 +87,19 @@ public:
     ~iterator() = default;
 
     reference operator* ();
-    reference operator[] (size_type _n);
+    reference operator[] (difference_type _n);
     const_reference operator* () const;
-    const_reference operator[] (size_type _n) const;
+    const_reference operator[] (difference_type _n) const;
 
-    iterator& operator+= (size_type _n);
-    iterator& operator-= (size_type _n);
+    iterator& operator+= (difference_type _n);
+    iterator& operator-= (difference_type _n);
     iterator& operator++ ();
     iterator& operator-- ();
     const iterator operator++(int);
     const iterator operator--(int);
 
-    iterator operator+ (size_type _n);
-    iterator operator- (size_type _n);
+    iterator operator+ (difference_type _n) const;
+    iterator operator- (difference_type _n) const;
     difference_type operator- (const iterator& _another) const;
     bool operator< (const iterator& _another) const;
     bool operator> (const iterator& _another) const;
@@ -151,24 +149,24 @@ public:
     using value_type        = typename vector::value_type;
     using difference_type   = typename vector::difference_type;
     using pointer           = typename vector::pointer;
-    using reference         = typename vector::reference;
+    using reference         = typename vector::const_reference;
     using const_reference   = typename vector::const_reference;
 
     const_iterator(const const_iterator&) = default;
     ~const_iterator() = default;
 
     const_reference operator* ();
-    const_reference operator[] (size_type _index);
+    const_reference operator[] (difference_type _index);
 
-    const_iterator& operator+= (size_type _n);
-    const_iterator& operator-= (size_type _n);
+    const_iterator& operator+= (difference_type _n);
+    const_iterator& operator-= (difference_type _n);
     const_iterator& operator++ ();
     const_iterator& operator-- ();
     const const_iterator operator++ (int);
     const const_iterator operator-- (int);
 
-    const_iterator operator+ (size_type _n);
-    const_iterator operator- (size_type _n);
+    const_iterator operator+ (difference_type _n) const;
+    const_iterator operator- (difference_type _n) const;
     difference_type operator- (const const_iterator& _another) const;
 
     bool operator< (const const_iterator& _another) const;
@@ -531,7 +529,7 @@ vector<T, Allocator>::iterator::operator* ()
 
 template <typename T, typename Allocator>
 typename vector<T, Allocator>::iterator::reference
-vector<T, Allocator>::iterator::operator[](size_type _n)
+vector<T, Allocator>::iterator::operator[](difference_type _n)
 {
     version_check();
     boundary_check(_n);
@@ -547,7 +545,7 @@ vector<T, Allocator>::iterator::operator* () const
 
 template <typename T, typename Allocator>
 typename vector<T, Allocator>::iterator::const_reference
-vector<T, Allocator>::iterator::operator[](size_type _n) const
+vector<T, Allocator>::iterator::operator[](difference_type _n) const
 {
     version_check();
     boundary_check(_n);
@@ -564,21 +562,21 @@ vector<T, Allocator>::iterator::operator-
 
 template <typename T, typename Allocator>
 typename vector<T, Allocator>::iterator
-vector<T, Allocator>::iterator::operator+(size_type _n)
+vector<T, Allocator>::iterator::operator+(difference_type _n) const
 {
     return iterator(get_from, ptr + _n);
 }
 
 template <typename T, typename Allocator>
 typename vector<T, Allocator>::iterator
-vector<T, Allocator>::iterator::operator-(size_type _n)
+vector<T, Allocator>::iterator::operator-(difference_type _n) const
 {
     return iterator(get_from, ptr - _n);
 }
 
 template <typename T, typename Allocator>
 typename vector<T, Allocator>::iterator&
-vector<T, Allocator>::iterator::operator+=(size_type _n)
+vector<T, Allocator>::iterator::operator+=(difference_type _n)
 {
     version_check();
     ptr += _n;
@@ -587,7 +585,7 @@ vector<T, Allocator>::iterator::operator+=(size_type _n)
 
 template <typename T, typename Allocator>
 typename vector<T, Allocator>::iterator&
-vector<T, Allocator>::iterator::operator-=(size_type _n)
+vector<T, Allocator>::iterator::operator-=(difference_type _n)
 {
     version_check();
     ptr -= _n;
@@ -689,7 +687,7 @@ vector<T, Allocator>::const_iterator::operator* ()
 
 template <typename T, typename Allocator>
 typename vector<T, Allocator>::const_iterator::const_reference
-vector<T, Allocator>::const_iterator::operator[] (size_type _n)
+vector<T, Allocator>::const_iterator::operator[] (difference_type _n)
 {
     version_check();
     boundary_check(_n);
@@ -698,7 +696,7 @@ vector<T, Allocator>::const_iterator::operator[] (size_type _n)
 
 template <typename T, typename Allocator>
 typename vector<T, Allocator>::const_iterator&
-vector<T, Allocator>::const_iterator::operator+= (size_type _n)
+vector<T, Allocator>::const_iterator::operator+= (difference_type _n)
 {
     version_check();
 
@@ -708,7 +706,7 @@ vector<T, Allocator>::const_iterator::operator+= (size_type _n)
 
 template <typename T, typename Allocator>
 typename vector<T, Allocator>::const_iterator&
-vector<T, Allocator>::const_iterator::operator-= (size_type _n)
+vector<T, Allocator>::const_iterator::operator-= (difference_type _n)
 {
     version_check();
     ptr -= _n;
@@ -756,14 +754,14 @@ vector <T, Allocator>::const_iterator::operator--(int)
 
 template <typename T, typename Allocator>
 typename vector<T, Allocator>::const_iterator
-vector<T, Allocator>::const_iterator::operator+ (size_type _n)
+vector<T, Allocator>::const_iterator::operator+ (difference_type _n) const
 {
     return iterator(get_from, ptr + _n);
 }
 
 template <typename T, typename Allocator>
 typename vector<T, Allocator>::const_iterator
-vector<T, Allocator>::const_iterator::operator- (size_type _n)
+vector<T, Allocator>::const_iterator::operator- (difference_type _n) const
 {
     return iterator(get_from, ptr - _n);
 }

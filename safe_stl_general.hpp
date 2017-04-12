@@ -11,6 +11,8 @@
 #include <initializer_list>
 #include <memory>
 
+#include "strings.defs.h"
+
 namespace saber
 {
 using std::allocator_traits;

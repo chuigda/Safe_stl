@@ -10,6 +10,17 @@
 #define ELEM_DESTROY_ERROR\
     "Element type T cannot be destroyed"
 
+#define TEMPLATE_ARG_NOT_ITERATOR\
+    "Template argument Iterator is not an iterator type"
+
+#define TEMPLATE_ARG_NOT_FORWARD_ITERATOR\
+    "Template argument Iterator is not a forward iterator type"
+
+#define TEMPLATE_ARG_NOT_BIDIRECTIONAL_ITERATOR\
+    "Template argument Iterator is not a bidirectional iterator type"
+
+#define TEMPLATE_ARG_NOT_RANDOM_ACCESS_ITERATOR\
+    "Template argument Iterator is not a random-access iterator type"
 
 #define OLD_ITERATOR\
     "An manipulating operation has been performed on container object"
