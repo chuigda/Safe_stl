@@ -1,4 +1,4 @@
-﻿#include "testcase_vector.h"
+#include <cstdio>
 #include "vector.hpp"
 #include <vector>
 

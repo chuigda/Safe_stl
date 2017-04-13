@@ -1,8 +1,9 @@
+#include <cstdio>
 ﻿#include <vector>
-#include "testcase_allocator.hpp"
 #include "safe_stl_general.hpp"
+#include "tracer.hpp"
 
-void testcase()
+void testcase_allocator()
 {
     std::printf("Running testcase for allocator\n\n");
 

@@ -1,6 +1,7 @@
+#include <cstdio>
 ﻿#include "vector.hpp"
+#include "tracer.hpp"
 #include <memory>
-#include "testcase_vector.h"
 
 void testcase4()
 {

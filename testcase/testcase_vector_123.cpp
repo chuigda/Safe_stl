@@ -1,5 +1,5 @@
+#include <cstdio>
 ﻿#include "vector.hpp"
-#include "testcase_vector.h"
 
 void testcase1()
 {

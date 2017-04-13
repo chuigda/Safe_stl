@@ -1,3 +1,4 @@
+#include <cstdio>
 ﻿#include "iterator.hpp"
 #include <vector>
 #include <forward_list>
