@@ -12,4 +12,6 @@ extern void testcase5();
 extern void testcase6();
 extern void testcase7();
 
+extern void testcase_iterator();
+
 #endif // TESTCASE_VECTOR_H

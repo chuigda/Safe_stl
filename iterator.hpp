@@ -226,7 +226,10 @@ struct is_random_access_iterator<T*>
 template <typename Iterator>
 class reverse_iterator
 {
-    static_assert(traits::is_iterator<Iterator>::value, TEMPLATE_ARG_NOT_ITERATOR);
+    static_assert(traits::is_iterator<Iterator>::value,
+                  TEMPLATE_ARG_NOT_ITERATOR);
+    static_assert(traits::is_bidirectional_iterator<Iterator>::value,
+                  TEMPLATE_ARG_NOT_BIDIRECTIONAL_ITERATOR);
 
 public:
     using iterator_category = typename std::iterator_traits<Iterator>::iterator_category;
@@ -234,6 +237,7 @@ public:
     using pointer           = typename std::iterator_traits<Iterator>::pointer;
     using reference         = typename std::iterator_traits<Iterator>::reference;
     using difference_type   = typename std::iterator_traits<Iterator>::difference_type;
+    using iterator_type     = Iterator;
 
     reverse_iterator(void) = default;
     reverse_iterator(Iterator _iter);
@@ -260,7 +264,10 @@ public:
     bool operator< (const reverse_iterator& _another) const;
     bool operator>= (const reverse_iterator& _another) const;
     bool operator<= (const reverse_iterator& _another) const;
+    bool operator== (const reverse_iterator& _another) const;
     bool operator!= (const reverse_iterator& _another) const;
+
+    iterator_type base() { return actual_iter; }
 
 private:
     Iterator actual_iter;
@@ -272,10 +279,17 @@ reverse_iterator<Iterator>::reverse_iterator(Iterator _iter) :
 {}
 
 template <typename Iterator>
+template <typename U>
+reverse_iterator<Iterator>::reverse_iterator(const reverse_iterator<U> &_ri)
+    : actual_iter(_ri.base())
+{}
+
+template <typename Iterator>
 typename reverse_iterator<Iterator>::reference
 reverse_iterator<Iterator>::operator*()
 {
-    return *actual_iter;
+    iterator_type i(actual_iter);
+    return *(--i);
 }
 
 template <typename Iterator>
@@ -284,7 +298,7 @@ reverse_iterator<Iterator>::operator[] (difference_type _n)
 {
     static_assert(traits::is_random_access_iterator<Iterator>::value,
                   TEMPLATE_ARG_NOT_RANDOM_ACCESS_ITERATOR);
-    return actual_iter[-_n];
+    return *(actual_iter - _n);
 }
 
 template <typename Iterator>
@@ -293,14 +307,16 @@ reverse_iterator<Iterator>::operator++ ()
 {
     static_assert(traits::is_bidirectional_iterator<Iterator>::value,
                   TEMPLATE_ARG_NOT_BIDIRECTIONAL_ITERATOR);
-    return --actual_iter;
+    --actual_iter;
+    return *this;
 }
 
 template <typename Iterator>
 reverse_iterator<Iterator>&
 reverse_iterator<Iterator>::operator-- ()
 {
-    return ++actual_iter;
+    ++actual_iter;
+    return *this;
 }
 
 template <typename Iterator>
@@ -361,7 +377,61 @@ reverse_iterator<Iterator>::operator- (const reverse_iterator &_another) const
 {
     static_assert(traits::is_random_access_iterator<Iterator>::value,
                   TEMPLATE_ARG_NOT_RANDOM_ACCESS_ITERATOR);
-    return reverse_iterator(_another.actual_iter - actual_iter);
+    return _another.actual_iter - actual_iter;
+}
+
+template <typename Iterator>
+bool
+reverse_iterator<Iterator>::operator> (const reverse_iterator& _another) const
+{
+    static_assert(traits::is_random_access_iterator<Iterator>::value,
+                  TEMPLATE_ARG_NOT_RANDOM_ACCESS_ITERATOR);
+    return actual_iter < _another.actual_iter;
+}
+
+template <typename Iterator>
+bool
+reverse_iterator<Iterator>::operator< (const reverse_iterator& _another) const
+{
+    static_assert(traits::is_random_access_iterator<Iterator>::value,
+                  TEMPLATE_ARG_NOT_RANDOM_ACCESS_ITERATOR);
+    return actual_iter > _another.actual_iter;
+}
+
+template <typename Iterator>
+bool
+reverse_iterator<Iterator>::operator>= (const reverse_iterator& _another) const
+{
+    static_assert(traits::is_random_access_iterator<Iterator>::value,
+                  TEMPLATE_ARG_NOT_RANDOM_ACCESS_ITERATOR);
+    return actual_iter <= _another.actual_iter;
+}
+
+template <typename Iterator>
+bool
+reverse_iterator<Iterator>::operator<= (const reverse_iterator &_another) const
+{
+    static_assert(traits::is_random_access_iterator<Iterator>::value,
+                  TEMPLATE_ARG_NOT_RANDOM_ACCESS_ITERATOR);
+    return actual_iter >= _another.actual_iter;
+}
+
+template <typename Iterator>
+bool
+reverse_iterator<Iterator>::operator== (const reverse_iterator &_another) const
+{
+    static_assert(traits::is_random_access_iterator<Iterator>::value,
+                  TEMPLATE_ARG_NOT_RANDOM_ACCESS_ITERATOR);
+    return actual_iter == _another.actual_iter;
+}
+
+template <typename Iterator>
+bool
+reverse_iterator<Iterator>::operator!= (const reverse_iterator &_another) const
+{
+    static_assert(traits::is_random_access_iterator<Iterator>::value,
+                  TEMPLATE_ARG_NOT_RANDOM_ACCESS_ITERATOR);
+    return actual_iter != _another.actual_iter;
 }
 
 }

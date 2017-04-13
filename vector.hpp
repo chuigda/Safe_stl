@@ -27,6 +27,9 @@ public:
     class iterator;
     class const_iterator;
 
+    using reverse_iterator       = std::reverse_iterator<iterator>;
+    using const_reverse_iterator = std::reverse_iterator<const_iterator>;
+
     vector();
     vector(const vector& _another);
     vector(vector&& _another);
@@ -59,6 +62,15 @@ public:
 
     const_iterator cbegin() const;
     const_iterator cend() const;
+
+    reverse_iterator rbegin();
+    reverse_iterator rend();
+
+    const_reverse_iterator rbegin() const;
+    const_reverse_iterator rend() const;
+
+    const_reverse_iterator crbegin() const;
+    const_reverse_iterator crend() const;
 
 private:
     void update_vector();
@@ -483,6 +495,48 @@ typename vector<T, Allocator>::const_iterator
 vector<T, Allocator>::cend() const
 {
     return const_iterator(this, &array[size_val]);
+}
+
+template <typename T, typename Allocator>
+typename vector<T, Allocator>::reverse_iterator
+vector<T, Allocator>::rbegin()
+{
+    return reverse_iterator(end());
+}
+
+template <typename T, typename Allocator>
+typename vector<T, Allocator>::reverse_iterator
+vector<T, Allocator>::rend()
+{
+    return reverse_iterator(begin());
+}
+
+template <typename T, typename Allocator>
+typename vector<T, Allocator>::const_reverse_iterator
+vector<T, Allocator>::rbegin() const
+{
+    return const_reverse_iterator(end());
+}
+
+template <typename T, typename Allocator>
+typename vector<T, Allocator>::const_reverse_iterator
+vector<T, Allocator>::rend() const
+{
+    return const_reverse_iterator(begin());
+}
+
+template <typename T, typename Allocator>
+typename vector<T, Allocator>::const_reverse_iterator
+vector<T, Allocator>::crbegin() const
+{
+    return const_reverse_iterator(rend());
+}
+
+template <typename T, typename Allocator>
+typename vector<T, Allocator>::const_reverse_iterator
+vector<T, Allocator>::crend() const
+{
+    return const_reverse_iterator(rbegin());
 }
 
 template <typename T, typename Allocator>

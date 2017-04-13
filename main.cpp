@@ -10,6 +10,8 @@ int main()
     testcase3();
     testcase4();
     testcase5();
-    testcase7();
+    // testcase7();
+
+    testcase_iterator();
     return 0;
 }

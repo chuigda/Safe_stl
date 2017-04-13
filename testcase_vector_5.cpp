@@ -12,6 +12,12 @@ void testcase5()
     vec.push_back(1);
     vec.push_back(4);
     vec.push_back(7);
+    vec.push_back(4);
+    vec.push_back(8);
+    vec.push_back(3);
+    vec.push_back(6);
+    vec.push_back(4);
+    vec.push_back(7);
 
     std::sort(vec.begin(), vec.end());
 
@@ -21,8 +27,15 @@ void testcase5()
     {
         std::printf("%d ", *it);
     }
+    std::putchar('\n');
 
-    putchar('\n');
+    for (auto it = vec.rbegin();
+         it != vec.rend();
+         ++it)
+    {
+        std::printf("%d ", *it);
+    }
+    std::putchar('\n');
 
     std::printf("\n\n");
 }
