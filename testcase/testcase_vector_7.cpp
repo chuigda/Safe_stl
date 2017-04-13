@@ -1,8 +1,8 @@
-#include <cstdio>
+﻿#include <cstdio>
 #include "vector.hpp"
 #include <vector>
 
-void testcase7()
+void testcase_vector_7()
 {
     std::printf("Running testcase7\n\n");
 

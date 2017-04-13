@@ -1,7 +1,8 @@
-#include <cstdio>
-﻿#include "vector.hpp"
+﻿#include <cstdio>
+#include "tracer.hpp"
+#include "vector.hpp"
 
-void testcase1()
+void testcase_vector_1()
 {
     std::printf("Running testcase1\n\n");
 
@@ -31,7 +32,7 @@ void testcase1()
     std::printf("\n\n");
 }
 
-void testcase2()
+void testcase_vector_2()
 {
     std::printf("Running testcase2\n\n");
 
@@ -47,7 +48,7 @@ void testcase2()
     std::printf("\n\n");
 }
 
-void testcase3()
+void testcase_vector_3()
 {
     std::printf("Running testcase3\n\n");
 

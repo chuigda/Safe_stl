@@ -2,7 +2,7 @@
 #include "vector.hpp"
 #include <algorithm>
 
-void testcase5()
+void testcase_vector_5()
 {
     std::printf("Running testcase5\n\n");
 

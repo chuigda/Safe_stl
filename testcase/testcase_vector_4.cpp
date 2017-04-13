@@ -1,9 +1,9 @@
-#include <cstdio>
-﻿#include "vector.hpp"
+﻿#include <cstdio>
+#include "vector.hpp"
 #include "tracer.hpp"
 #include <memory>
 
-void testcase4()
+void testcase_vector_4()
 {
     std::printf("Running testcase4\n\n");
 

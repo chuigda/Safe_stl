@@ -1,10 +1,12 @@
 ﻿#ifndef VECTOR_HPP
 #define VECTOR_HPP
 
+#include "iterator.hpp"
+#include "allocator.hpp"
 #include "safe_stl_general.hpp"
 #include "strings.defs.h"
+
 #include <limits>
-#include <iterator>
 
 namespace saber
 {
