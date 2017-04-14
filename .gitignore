@@ -32,3 +32,6 @@
 *.pro
 *.pro.user
 *.pro.user.*
+
+# Main.cpp for test only
+main.cpp
