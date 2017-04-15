@@ -32,8 +32,8 @@ public:
     class iterator;
     class const_iterator;
 
-    using reverse_iterator       = std::reverse_iterator<iterator>;
-    using const_reverse_iterator = std::reverse_iterator<const_iterator>;
+    using reverse_iterator       = saber::reverse_iterator<iterator>;
+    using const_reverse_iterator = saber::reverse_iterator<const_iterator>;
 
     vector();
     vector(const vector& _another);

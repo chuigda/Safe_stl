@@ -136,9 +136,7 @@ struct is_iterator
     static constexpr bool value = has_iterator_subtypes<T>::value
                                   && has_basic_iterator_func<T>::value;
 
-    using value_type = decltype(value ?
-                                std::declval<true_type>() :
-                                std::declval<false_type>());
+    using value_type = typename int2type<value>::value_type;
 };
 
 template <typename T>
@@ -147,9 +145,7 @@ struct is_input_iterator
     static constexpr bool value = is_iterator<T>::value
                                   && has_input_iterator_func<T>::value;
 
-    using value_type = decltype(value ?
-                                std::declval<true_type>() :
-                                std::declval<false_type>());
+    using value_type = typename int2type<value>::value_type;
 };
 
 template <typename T>
@@ -165,9 +161,7 @@ struct is_forward_iterator
     static constexpr bool value = is_input_iterator<T>::value
                                   && has_forward_iterator_func<T>::value;
 
-    using value_type = decltype(value ?
-                                std::declval<true_type>() :
-                                std::declval<false_type>());
+    using value_type = typename int2type<value>::value_type;
 };
 
 template <typename T>
@@ -176,9 +170,7 @@ struct is_bidirectional_iterator
     static constexpr bool value = is_forward_iterator<T>::value
                                   && has_bidirectional_iterator_func<T>::value;
 
-    using value_type = decltype(value ?
-                                std::declval<true_type>() :
-                                std::declval<false_type>());
+    using value_type = typename int2type<value>::value_type;
 };
 
 template <typename T>
@@ -187,9 +179,7 @@ struct is_random_access_iterator
     static constexpr bool value = is_bidirectional_iterator<T>::value
                                   && has_random_access_iterator_func<T>::value;
 
-    using value_type = decltype(value ?
-                                std::declval<true_type>() :
-                                std::declval<false_type>());
+    using value_type = typename int2type<value>::value_type;
 };
 
 

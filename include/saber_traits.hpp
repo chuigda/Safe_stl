@@ -13,6 +13,18 @@ using std::false_type;
 template<typename... Ts> struct make_void { typedef void type;};
 template<typename... Ts> using void_t = typename make_void<Ts...>::type;
 
+template<bool b>
+struct int2type 
+{
+    using value_type = false_type;
+};
+
+template<>
+struct int2type<true>
+{
+    using value_type = true_type;
+};
+
 }
 }
 
