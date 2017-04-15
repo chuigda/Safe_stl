@@ -13,6 +13,9 @@
 #define TEMPLATE_ARG_NOT_ITERATOR\
     "Template argument Iterator is not an iterator type"
 
+#define TEMPLATE_ARG_NOT_INPUT_ITERATOR\
+    "Template argument Iterator is not an input iterator type"
+
 #define TEMPLATE_ARG_NOT_FORWARD_ITERATOR\
     "Template argument Iterator is not a forward iterator type"
 
@@ -33,5 +36,8 @@
 
 #define ITERATOR_OVERFLOW\
     "This iterator is now pointing to an invalid position"
+
+#define UNKNOWN_REGION_ITERATOR\
+    "This iterator does not come from this container"
 
 #endif // STRINGS_DEFS_H

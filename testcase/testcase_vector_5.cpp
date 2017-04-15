@@ -6,18 +6,7 @@ void testcase_vector_5()
 {
     std::printf("Running testcase5\n\n");
 
-    saber::vector<int> vec;
-
-    vec.push_back(2);
-    vec.push_back(1);
-    vec.push_back(4);
-    vec.push_back(7);
-    vec.push_back(4);
-    vec.push_back(8);
-    vec.push_back(3);
-    vec.push_back(6);
-    vec.push_back(4);
-    vec.push_back(7);
+    saber::vector<int> vec {2, 1, 4, 7, 4, 8, 3, 6, 4, 7};
 
     std::sort(vec.begin(), vec.end());
 

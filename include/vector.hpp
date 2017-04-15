@@ -15,8 +15,10 @@ template <typename T,
           typename Allocator = default_allocator<T>>
 class vector
 {
-    static_assert(std::is_copy_constructible<T>::value, ELEM_COPY_CONSTRUCT_ERROR);
-    static_assert(std::is_destructible<T>::value, ELEM_DESTROY_ERROR);
+    static_assert(std::is_copy_constructible<T>::value,
+                  ELEM_COPY_CONSTRUCT_ERROR);
+    static_assert(std::is_destructible<T>::value,
+                  ELEM_DESTROY_ERROR);
 
 public:
     using value_type      = T;
@@ -25,6 +27,7 @@ public:
     using const_reference = const T&;
     using size_type       = size_t;
     using difference_type = std::ptrdiff_t;
+    using allocator_type  = Allocator;
 
     class iterator;
     class const_iterator;
@@ -34,11 +37,30 @@ public:
 
     vector();
     vector(const vector& _another);
+    vector(const vector& _another, const allocator_type& _allocator);
+    vector(size_type _n, const allocator_type& _allocator);
+    vector(size_type _n,
+           const value_type& _value,
+           const allocator_type& _allocator);
     vector(vector&& _another);
+    vector(vector&& _another, const allocator_type& _allocator);
+
+    vector(initializer_list<value_type> _list,
+           const allocator_type& _allocator = Allocator());
+
+    template <typename InputIterator>
+    vector(InputIterator _first,
+           InputIterator _last,
+           const allocator_type& _allocator = Allocator());
+    ~vector();
 
     vector& operator= (const vector& _another);
     vector& operator= (vector&& _another);
-    ~vector();
+
+    void assign(size_type _n, const value_type& _value);
+    void assign(initializer_list<value_type> _list);
+    template <typename InputIterator>
+    void assign(InputIterator _begin, InputIterator _end);
 
     size_type size() const;
     size_type max_size() const;
@@ -48,8 +70,28 @@ public:
     void reserve(size_type _capacity);
     void push_back(const T& _element);
     void pop_back(void);
-    template<typename... Args> void emplace_back(Args... _args);
+    template<typename... Args>
+    void emplace_back(Args... _args);
     void clear(void);
+
+    iterator insert(const_iterator _position, const value_type& _value);
+    iterator insert(const_iterator _position, value_type&& _value);
+    template <typename InputIterator>
+    iterator insert(const_iterator _position,
+                    InputIterator _begin,
+                    InputIterator _end);
+    iterator insert(const_iterator _position,
+                    initializer_list<value_type> _list);
+
+    template <typename... Args>
+    iterator emplace(const_iterator _position, Args... _args);
+
+    iterator erase(const_iterator _position);
+    iterator erase(const_iterator _begin, const_iterator _end);
+
+    reverse_iterator erase(const_reverse_iterator _position);
+    reverse_iterator erase(const_reverse_iterator _begin,
+                           const_reverse_iterator _end);
 
     reference at(size_type _index);
     reference operator[] (size_type _index);
@@ -72,7 +114,7 @@ public:
     const_reverse_iterator rend() const;
 
     const_reverse_iterator crbegin() const;
-    const_reverse_iterator crend() const;
+    const_reverse_iterator crend() const;   
 
 private:
     void update_vector();
@@ -224,7 +266,8 @@ private:
 
 
 template <typename T, typename Allocator>
-vector<T, Allocator>::vector()
+vector<T, Allocator>::vector() :
+    alloc()
 {
     array = allocator_traits<Allocator>::allocate(alloc, 4);
     capacity = 4;
@@ -239,7 +282,7 @@ vector<T, Allocator>::vector(const vector &_another) :
 {
     stl_warning(CONTAINER_COPY);
 
-    array = allocator_traits<Allocator>::allocate(alloc,_another.size_val);
+    array = allocator_traits<Allocator>::allocate(alloc, _another.size_val);
 
     for (size_type i = 0; i < _another.size_val; ++i)
     {
@@ -248,6 +291,80 @@ vector<T, Allocator>::vector(const vector &_another) :
 
     size_val = capacity = _another.size_val;
     update_vector();
+}
+
+template <typename T, typename Allocator>
+vector<T, Allocator>::vector(const vector &_another,
+                             const allocator_type &_allocator) :
+    alloc(_allocator)
+{
+    stl_warning(CONTAINER_COPY);
+
+    array = allocator_traits<Allocator>::allocate(alloc, _another.size_val);
+
+    for (size_type i = 0; i < _another.size_val; ++i)
+    {
+        allocator_traits<Allocator>::construct(alloc,&array[i], _another[i]);
+    }
+
+    size_val = capacity = _another.size_val;
+    update_vector();
+}
+
+template <typename T, typename Allocator>
+vector<T, Allocator>::vector(size_type _n, const allocator_type &_allocator) :
+    alloc(_allocator)
+{
+    array = allocator_traits<Allocator>::allocate(alloc, _n);
+    capacity = _n;
+    size_val = 0;
+    update_vector();
+}
+
+template <typename T, typename Allocator>
+vector<T, Allocator>::vector(size_type _n,
+                             const value_type &_value,
+                             const allocator_type &_allocator) :
+    alloc(_allocator)
+{
+    array = allocator_traits<Allocator>::allocate(alloc, _n);
+    capacity = _n;
+
+    for (size_type i = 0; i < _n; ++i)
+    {
+        allocator_traits<Allocator>::construct(alloc, array[i], _value);
+    }
+
+    size_val = _n;
+    update_vector();
+
+}
+
+template <typename T, typename Allocator>
+vector<T, Allocator>::vector(initializer_list<value_type> _list,
+                             const allocator_type &_allocator) :
+    vector(_list.begin(), _list.end(), _allocator)
+{
+}
+
+template <typename T, typename Allocator>
+template <typename InputIterator>
+vector<T, Allocator>::vector(InputIterator _begin,
+                             InputIterator _end,
+                             const allocator_type& _allocator) :
+    alloc(_allocator)
+{
+    static_assert(traits::is_input_iterator<InputIterator>::value,
+                  TEMPLATE_ARG_NOT_INPUT_ITERATOR);
+
+    array = allocator_traits<Allocator>::allocate(alloc, 4);
+    capacity = 4;
+    size_val = 0;
+
+    for(; _begin != _end; ++_begin)
+    {
+        push_back(*_begin);
+    }
 }
 
 template <typename T, typename Allocator>
@@ -264,6 +381,34 @@ vector<T, Allocator>::vector(vector &&_another) :
 
     update_vector();
 }
+
+template <typename T, typename Allocator>
+vector<T, Allocator>::vector(vector &&_another,
+                             const allocator_type &_allocator) :
+    alloc(_another)
+{
+    array = _another.array;
+    _another.array = nullptr;
+
+    size_val = _another.size_val;
+    capacity = _another.capacity;
+
+    _another.capacity = _another.size_val = 0;
+
+    update_vector();
+}
+
+template <typename T, typename Allocator>
+vector<T, Allocator>::~vector()
+{
+    for (size_type i = 0; i < size_val; ++i)
+    {
+        allocator_traits<Allocator>::destroy(alloc,&array[i]);
+    }
+
+    allocator_traits<Allocator>::deallocate(alloc, array, capacity);
+}
+
 
 template <typename T, typename Allocator>
 vector<T, Allocator>&
@@ -322,14 +467,42 @@ vector<T, Allocator>::operator =(vector&& _another)
 }
 
 template <typename T, typename Allocator>
-vector<T, Allocator>::~vector()
+void
+vector<T, Allocator>::assign(size_type _n, const value_type &_value)
 {
-    for (size_type i = 0; i < size_val; ++i)
+    while (size() >= 0) pop_back();
+
+    for (size_type i = 0; i < _n; ++i)
     {
-        allocator_traits<Allocator>::destroy(alloc,&array[i]);
+        push_back(_value);
     }
 
-    allocator_traits<Allocator>::deallocate(alloc, array, capacity);
+    update_vector();
+}
+
+template <typename T, typename Allocator>
+void
+vector<T, Allocator>::assign(initializer_list<value_type> _list)
+{
+    assign(_list.begin(), _list.end());
+}
+
+template <typename T, typename Allocator>
+template <typename InputIterator>
+void
+vector<T, Allocator>::assign(InputIterator _begin, InputIterator _end)
+{
+    static_assert(traits::is_input_iterator<InputIterator>::value,
+                  TEMPLATE_ARG_NOT_INPUT_ITERATOR);
+
+    while (size() >= 0) pop_back();
+
+    for (; _begin != _end; ++_begin)
+    {
+        push_back(*_begin);
+    }
+
+    update_vector();
 }
 
 template <typename T, typename Allocator>
@@ -435,6 +608,111 @@ vector<T, Allocator>::clear()
 
     size_val = 0;
     update_vector();
+}
+
+template <typename T, typename Allocator>
+typename vector<T, Allocator>::iterator
+vector<T, Allocator>::insert(const_iterator _position,
+                             const value_type &_value)
+{
+}
+
+
+template <typename T, typename Allocator>
+typename vector<T, Allocator>::iterator
+vector<T, Allocator>::insert(const_iterator _position, value_type &&_value)
+{
+}
+
+template <typename T, typename Allocator>
+template <typename InputIterator>
+typename vector<T, Allocator>::iterator
+vector<T, Allocator>::insert(const_iterator _position,
+                             InputIterator _begin,
+                             InputIterator _end)
+{
+}
+
+template <typename T, typename Allocator>
+typename vector<T, Allocator>::iterator
+vector<T, Allocator>::insert(const_iterator _position,
+                             initializer_list<value_type> _list)
+{
+}
+
+template <typename T, typename Allocator>
+template <typename... Args>
+typename vector<T, Allocator>::iterator
+vector<T, Allocator>::emplace(const_iterator _position,
+                              Args... _args)
+{
+}
+
+template <typename T, typename Allocator>
+typename vector<T, Allocator>::iterator
+vector<T, Allocator>::erase(const_iterator _position)
+{
+    if (_position.get_from != this)
+    {
+        stl_panic(UNKNOWN_REGION_ITERATOR);
+    }
+    _position.version_check();
+    _position.boundary_check(0);
+
+    // Incomplete part
+}
+
+template <typename T, typename Allocator>
+typename vector<T, Allocator>::iterator
+vector<T, Allocator>::erase(const_iterator _begin,
+                            const_iterator _end)
+{
+    if (_begin.get_from != this
+        || _end.get_from != this)
+    {
+        stl_panic(UNKNOWN_REGION_ITERATOR);
+    }
+
+    _begin.version_check();
+    _begin.boundary_check(0);
+    _end.version_check();
+    _end.boundary_check(0);
+
+    // Incomplete part
+}
+
+template <typename T, typename Allocator>
+typename vector<T, Allocator>::reverse_iterator
+vector<T, Allocator>::erase(const_reverse_iterator _position)
+{
+    if (_position.base().get_from() != this)
+    {
+        stl_panic(UNKNOWN_REGION_ITERATOR);
+    }
+
+    _position.base().version_check();
+    _position.base().boundary_check(0);
+
+    // Incomplete part
+}
+
+template <typename T, typename Allocator>
+typename vector<T, Allocator>::reverse_iterator
+vector<T, Allocator>::erase(const_reverse_iterator _begin,
+                            const_reverse_iterator _end)
+{
+    if (_begin.base().get_from != this
+        || _end.base().get_from != this)
+    {
+        stl_panic(UNKNOWN_REGION_ITERATOR);
+    }
+
+    _begin.base().version_check();
+    _begin.base().boundary_check(0);
+    _end.base().version_check();
+    _end.base().boundary_check(0);
+
+    // Incomplete part
 }
 
 template <typename T, typename Allocator>
