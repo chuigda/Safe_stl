@@ -25,7 +25,7 @@ struct int2type<true>
     using value_type = true_type;
 };
 
-}
-}
+} // namespace traits
+} // namespace saber
 
 #endif // SABER_TRAITS_HPP

@@ -2,8 +2,8 @@
 #define VECTOR_HPP
 
 #include "iterator.hpp"
+#include "memory.hpp"
 #include "allocator.hpp"
-#include "safe_stl_general.hpp"
 #include "strings.defs.h"
 
 #include <limits>
@@ -76,6 +76,9 @@ public:
 
     iterator insert(const_iterator _position, const value_type& _value);
     iterator insert(const_iterator _position, value_type&& _value);
+    iterator insert(const_iterator _position,
+                    size_type _n,
+                    const value_type& _value);
     template <typename InputIterator>
     iterator insert(const_iterator _position,
                     InputIterator _begin,
@@ -114,11 +117,14 @@ public:
     const_reverse_iterator rend() const;
 
     const_reverse_iterator crbegin() const;
-    const_reverse_iterator crend() const;   
+    const_reverse_iterator crend() const;
 
 private:
     void update_vector();
     void auto_increase();
+
+    template <typename U>
+    void check_iterator(const U& _it);
 
     Allocator alloc;
     T *array;
@@ -195,8 +201,6 @@ private:
     size_t update_count;
 };
 
-
-
 template <typename T, typename Allocator>
 class vector<T, Allocator>::const_iterator
 {
@@ -262,8 +266,6 @@ private:
     const value_type *ptr;
     size_t update_count;
 };
-
-
 
 template <typename T, typename Allocator>
 vector<T, Allocator>::vector() :
@@ -385,7 +387,7 @@ vector<T, Allocator>::vector(vector &&_another) :
 template <typename T, typename Allocator>
 vector<T, Allocator>::vector(vector &&_another,
                              const allocator_type &_allocator) :
-    alloc(_another)
+    alloc(_allocator)
 {
     array = _another.array;
     _another.array = nullptr;
@@ -583,7 +585,6 @@ vector<T, Allocator>::pop_back()
     update_vector();
 }
 
-
 template <typename T, typename Allocator>
 template <typename... Args>
 void
@@ -615,13 +616,72 @@ typename vector<T, Allocator>::iterator
 vector<T, Allocator>::insert(const_iterator _position,
                              const value_type &_value)
 {
+    static_assert(std::is_copy_assignable<T>::value, "" /* On hold */);
+    return insert(_position, size_type(1), _value);
 }
-
 
 template <typename T, typename Allocator>
 typename vector<T, Allocator>::iterator
-vector<T, Allocator>::insert(const_iterator _position, value_type &&_value)
+vector<T, Allocator>::insert(const_iterator _position,
+                             value_type &&_value)
 {
+    static_assert(std::is_copy_assignable<T>::value, "" /* On hold */);
+    static_assert(std::is_move_assignable<T>::value, "" /* On hold */);
+    check_iterator(_position);
+    Q_UNUSED(_value);
+    // Incomplete part
+}
+
+template <typename T, typename Allocator>
+typename vector<T, Allocator>::iterator
+vector<T, Allocator>::insert(const_iterator _position,
+                             size_type _n,
+                             const value_type &_value)
+{
+    static_assert(std::is_copy_assignable<T>::value, "" /* On hold */);
+    check_iterator(_position);
+
+    size_type size_after = _n + size_val;
+
+    size_type position_diff = static_cast<size_type>(_position - cbegin());
+    value_type *new_array =
+            allocator_traits<Allocator>::allocate(alloc, size_after);
+    {
+        size_type i;
+        for (i = 0; i < position_diff; ++i)
+        {
+            allocator_traits<Allocator>::construct(alloc,
+                                                   &new_array[i],
+                                                   this->operator[](i));
+        }
+
+        size_type j;
+        for (j = 0; j < _n; ++j)
+        {
+            allocator_traits<Allocator>::construct(alloc,
+                                                   &new_array[i + j],
+                                                   _value);
+        }
+        for (; i + j < size_after; ++i)
+        {
+            allocator_traits<Allocator>::construct(alloc,
+                                                   &new_array[i + j],
+                                                   this->operator[](i));
+        }
+    }
+
+    for (size_t i = 0; i < size_val; ++i)
+    {
+        allocator_traits<Allocator>::destroy(alloc, &array[i]);
+    }
+    allocator_traits<Allocator>::deallocate(alloc, array, capacity);
+
+    array = new_array;
+    new_array = nullptr;
+    capacity = size_val = size_after;
+
+    update_vector();
+    return iterator(this, array + position_diff);
 }
 
 template <typename T, typename Allocator>
@@ -631,6 +691,17 @@ vector<T, Allocator>::insert(const_iterator _position,
                              InputIterator _begin,
                              InputIterator _end)
 {
+    static_assert(std::is_copy_assignable<T>::value, "" /* On hold */);
+    check_iterator(_position);
+
+    difference_type position_diff = _position - cbegin();
+
+    for (; _begin != _end; ++_begin, ++_position)
+    {
+        _position = const_iterator(this, insert(_position, *_begin).ptr);
+    }
+
+    return begin() + position_diff;
 }
 
 template <typename T, typename Allocator>
@@ -638,26 +709,31 @@ typename vector<T, Allocator>::iterator
 vector<T, Allocator>::insert(const_iterator _position,
                              initializer_list<value_type> _list)
 {
+    static_assert(std::is_copy_assignable<T>::value, "" /* On hold */);
+    check_iterator(_position);
+
+    return insert(_position, _list.begin(), _list.end());
 }
 
 template <typename T, typename Allocator>
 template <typename... Args>
 typename vector<T, Allocator>::iterator
 vector<T, Allocator>::emplace(const_iterator _position,
-                              Args... _args)
+                              Args...)
 {
+    static_assert(std::is_copy_assignable<T>::value, "" /* On hold */);
+    static_assert(std::is_move_assignable<T>::value, "" /* On hold */);
+    check_iterator(_position);
+
+    // Incomplete part
 }
 
 template <typename T, typename Allocator>
 typename vector<T, Allocator>::iterator
 vector<T, Allocator>::erase(const_iterator _position)
 {
-    if (_position.get_from != this)
-    {
-        stl_panic(UNKNOWN_REGION_ITERATOR);
-    }
-    _position.version_check();
-    _position.boundary_check(0);
+    check_iterator(_position);
+
 
     // Incomplete part
 }
@@ -667,31 +743,20 @@ typename vector<T, Allocator>::iterator
 vector<T, Allocator>::erase(const_iterator _begin,
                             const_iterator _end)
 {
-    if (_begin.get_from != this
-        || _end.get_from != this)
+    check_iterator(_begin);
+    check_iterator(_end);
+
+    for (auto it = _begin; it != _end; ++it)
     {
-        stl_panic(UNKNOWN_REGION_ITERATOR);
+        allocator_traits<Allocator>::destroy(alloc, it.ptr);
     }
-
-    _begin.version_check();
-    _begin.boundary_check(0);
-    _end.version_check();
-    _end.boundary_check(0);
-
-    // Incomplete part
 }
 
 template <typename T, typename Allocator>
 typename vector<T, Allocator>::reverse_iterator
 vector<T, Allocator>::erase(const_reverse_iterator _position)
 {
-    if (_position.base().get_from() != this)
-    {
-        stl_panic(UNKNOWN_REGION_ITERATOR);
-    }
-
-    _position.base().version_check();
-    _position.base().boundary_check(0);
+    check_iterator(_position.base());
 
     // Incomplete part
 }
@@ -701,16 +766,11 @@ typename vector<T, Allocator>::reverse_iterator
 vector<T, Allocator>::erase(const_reverse_iterator _begin,
                             const_reverse_iterator _end)
 {
-    if (_begin.base().get_from != this
-        || _end.base().get_from != this)
-    {
-        stl_panic(UNKNOWN_REGION_ITERATOR);
-    }
+    static_assert(std::is_move_assignable<T>::value,
+                  "" /* On hold */);
 
-    _begin.base().version_check();
-    _begin.base().boundary_check(0);
-    _end.base().version_check();
-    _end.base().boundary_check(0);
+    check_iterator(_begin.base());
+    check_iterator(_end.base());
 
     // Incomplete part
 }
@@ -850,6 +910,20 @@ vector<T, Allocator>::auto_increase()
     capacity *= 2;
 
     update_vector();
+}
+
+template <typename T, typename Allocator>
+template <typename U>
+void
+vector<T, Allocator>::check_iterator(const U& _it)
+{
+    if (_it.get_from != this)
+    {
+        stl_panic(UNKNOWN_REGION_ITERATOR);
+    }
+
+    _it.version_check();
+    _it.boundary_check(0);
 }
 
 
@@ -1090,14 +1164,14 @@ template <typename T, typename Allocator>
 typename vector<T, Allocator>::const_iterator
 vector<T, Allocator>::const_iterator::operator+ (difference_type _n) const
 {
-    return iterator(get_from, ptr + _n);
+    return const_iterator(get_from, ptr + _n);
 }
 
 template <typename T, typename Allocator>
 typename vector<T, Allocator>::const_iterator
 vector<T, Allocator>::const_iterator::operator- (difference_type _n) const
 {
-    return iterator(get_from, ptr - _n);
+    return const_iterator(get_from, ptr - _n);
 }
 
 template <typename T, typename Allocator>
@@ -1156,5 +1230,6 @@ vector<T, Allocator>::const_iterator::operator!=
     return ! operator==(_another);
 }
 
-}
+} // namespace saber
+
 #endif // VECTOR_HPP
