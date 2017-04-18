@@ -33,8 +33,6 @@ uninitialized_copy(InputIterator _first,
     static_assert(traits::is_input_iterator<InputIterator>::value,
                   TEMPLATE_ARG_NOT_INPUT_ITERATOR);
 
-    using value_type = typename iterator_traits<ForwardIterator>::value_type;
-
     {
     ForwardIterator current = _d_first;
     try
@@ -49,7 +47,7 @@ uninitialized_copy(InputIterator _first,
     {
         for (; _d_first != current; ++_d_first)
         {
-            _d_first->~value_type();
+            destroy(std::addressof(*_d_first));
         }
         throw;
     }
@@ -66,8 +64,6 @@ ForwardIterator uninitialized_copy_n(InputIterator _first,
     static_assert(traits::is_input_iterator<InputIterator>::value,
                   TEMPLATE_ARG_NOT_INPUT_ITERATOR);
 
-    using value_type = typename std::iterator_traits<ForwardIterator>::value_type;
-
     {
     ForwardIterator current = _d_first;
     try
@@ -80,14 +76,147 @@ ForwardIterator uninitialized_copy_n(InputIterator _first,
     }
     catch (...)
     {
-        for (; _d_first != current; ++_d_first) {
-            _d_first->~value_type();
+        for (; _d_first != current; ++_d_first)
+        {
+            destroy(std::addressof(*_d_first));
         }
         throw;
     }
     }
 }
 
+template <typename ForwardIterator, typename T>
+void uninitialized_fill(ForwardIterator _first,
+                        ForwardIterator _last,
+                        const T& _value)
+{
+    {
+    ForwardIterator current = _first;
+    try {
+        for (; current != _last; ++current) {
+            construct(std::addressof(*current), _value);
+        }
+    }  catch (...) {
+        for (; _first != current; ++_first) {
+            destroy(std::addressof(*_first));
+        }
+        throw;
+    }
+    }
+}
+
+template <typename ForwardIterator, typename Size, typename T>
+ForwardIterator uninitialized_fill_n(ForwardIterator _first,
+                                     Size _count,
+                                     const T& _value)
+{
+    {
+    ForwardIterator current = _first;
+    try
+    {
+        for (; _count > 0; ++current, (void) --_count)
+        {
+            construct(std::addressof(*current), _value);
+        }
+        return current;
+    }
+    catch (...)
+    {
+        for (; _first != current; ++_first)
+        {
+            destroy(std::addressof(*_first));
+        }
+        throw;
+    }
+    }
+}
+
+
+template <typename T>
+class default_allocator
+{
+public:
+    using value_type = T;
+    using pointer = T*;
+    using size_type = std::size_t;
+    using difference_type = std::ptrdiff_t;
+
+    default_allocator() = default;
+    default_allocator(const default_allocator&) = default;
+    default_allocator(default_allocator&&) = default;
+
+    template <typename U>
+    default_allocator(const default_allocator<U>&) {}
+
+    pointer allocate(size_type _n, const void * = 0);
+    void deallocate(pointer _p, size_type) noexcept;
+
+    template <typename U, typename... Args>
+    void construct(U* _xptr, Args&&... args);
+
+    template <typename U>
+    void destroy(U* _xptr);
+
+    bool operator== (const default_allocator&) const noexcept;
+    bool operator!= (const default_allocator&) const noexcept;
+    default_allocator& operator= (const default_allocator&) noexcept;
+
+    template <typename U>
+    using other = default_allocator<U>;
+};
+
+template<typename T>
+typename default_allocator<T>::pointer
+default_allocator<T>::allocate(size_type _n, const void*)
+{
+    pointer ret =
+            reinterpret_cast<pointer>(::operator new[](sizeof(T) * _n));
+    return ret;
+}
+
+template<typename T>
+void
+default_allocator<T>::deallocate(pointer _p, size_type) noexcept
+{
+    ::operator delete[] (reinterpret_cast<void*>(_p));
+}
+
+template <typename T>
+template <typename U, typename... Args>
+void
+default_allocator<T>::construct(U *_xptr, Args&& ...args)
+{
+    ::new ((void *)_xptr) U(std::forward<Args>(args)...);
+}
+
+template <typename T>
+template <typename U>
+void
+default_allocator<T>::destroy(U *_xptr)
+{
+    _xptr->~U();
+}
+
+template<typename T>
+bool
+default_allocator<T>::operator==(const default_allocator &) const noexcept
+{
+    return true;
+}
+
+template<typename T>
+bool
+default_allocator<T>::operator!=(const default_allocator &) const noexcept
+{
+    return false;
+}
+
+template<typename T>
+default_allocator<T>&
+default_allocator<T>::operator=(const default_allocator &) noexcept
+{
+    return *this;
+}
 
 
 } // namespace saber

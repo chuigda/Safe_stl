@@ -3,9 +3,7 @@
 
 #include "iterator.hpp"
 #include "memory.hpp"
-#include "allocator.hpp"
 #include "strings.defs.h"
-
 #include <limits>
 
 namespace saber
@@ -280,19 +278,8 @@ vector<T, Allocator>::vector() :
 
 template <typename T, typename Allocator>
 vector<T, Allocator>::vector(const vector &_another) :
-    alloc(_another.alloc)
+    vector(_another, _another.alloc)
 {
-    stl_warning(CONTAINER_COPY);
-
-    array = allocator_traits<Allocator>::allocate(alloc, _another.size_val);
-
-    for (size_type i = 0; i < _another.size_val; ++i)
-    {
-        allocator_traits<Allocator>::construct(alloc,&array[i], _another[i]);
-    }
-
-    size_val = capacity = _another.size_val;
-    update_vector();
 }
 
 template <typename T, typename Allocator>
@@ -301,13 +288,9 @@ vector<T, Allocator>::vector(const vector &_another,
     alloc(_allocator)
 {
     stl_warning(CONTAINER_COPY);
-
     array = allocator_traits<Allocator>::allocate(alloc, _another.size_val);
 
-    for (size_type i = 0; i < _another.size_val; ++i)
-    {
-        allocator_traits<Allocator>::construct(alloc,&array[i], _another[i]);
-    }
+    saber::uninitialized_copy(_another.begin(), _another.end(), array);
 
     size_val = capacity = _another.size_val;
     update_vector();
@@ -339,7 +322,6 @@ vector<T, Allocator>::vector(size_type _n,
 
     size_val = _n;
     update_vector();
-
 }
 
 template <typename T, typename Allocator>
@@ -444,7 +426,7 @@ vector<T, Allocator>::operator=(const vector &_another)
 
 template <typename T, typename Allocator>
 vector<T, Allocator>&
-vector<T, Allocator>::operator =(vector&& _another)
+vector<T, Allocator>::operator= (vector&& _another)
 {
     if (&_another == this)
     {
@@ -821,6 +803,20 @@ typename vector<T, Allocator>::iterator
 vector<T, Allocator>::end()
 {
     return iterator(this, &array[size_val]);
+}
+
+template <typename T, typename Allocator>
+typename vector<T, Allocator>::const_iterator
+vector<T, Allocator>::begin() const
+{
+    return const_iterator(this, &array[0]);
+}
+
+template <typename T, typename Allocator>
+typename vector<T, Allocator>::const_iterator
+vector<T, Allocator>::end() const
+{
+    return const_iterator(this, &array[size_val]);
 }
 
 template <typename T, typename Allocator>
