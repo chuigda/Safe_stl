@@ -16,6 +16,9 @@
 #define TEMPLATE_ARG_NOT_INPUT_ITERATOR\
     "Template argument Iterator is not an input iterator type"
 
+#define TEMPLATE_ARG_NOT_OUTPUT_ITERATOR\
+    "Template argument Iterator is not an output iterator type"
+
 #define TEMPLATE_ARG_NOT_FORWARD_ITERATOR\
     "Template argument Iterator is not a forward iterator type"
 
@@ -24,6 +27,12 @@
 
 #define TEMPLATE_ARG_NOT_RANDOM_ACCESS_ITERATOR\
     "Template argument Iterator is not a random-access iterator type"
+
+#define TEMPLATE_ARG_NOT_COPY_ASSIGNABLE\
+    "Template argument T is not copy-assignable"
+
+#define TEMPLATE_ARG_NOT_MOVE_ASSIGNABLE\
+    "Template argument T is not move-assignable"
 
 #define OLD_ITERATOR\
     "An manipulating operation has been performed on container object"

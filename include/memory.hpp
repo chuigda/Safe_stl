@@ -12,7 +12,7 @@ template <typename T, typename... Args>
 void
 construct(T* _xptr, Args... _args)
 {
-    ::new (static_cast<void*>(_xptr)) T(_args...);
+    ::new (reinterpret_cast<void*>(_xptr)) T(_args...);
 }
 
 template <typename T, typename... Args>
@@ -92,12 +92,17 @@ void uninitialized_fill(ForwardIterator _first,
 {
     {
     ForwardIterator current = _first;
-    try {
-        for (; current != _last; ++current) {
+    try
+    {
+        for (; current != _last; ++current)
+        {
             construct(std::addressof(*current), _value);
         }
-    }  catch (...) {
-        for (; _first != current; ++_first) {
+    }
+    catch (...)
+    {
+        for (; _first != current; ++_first)
+        {
             destroy(std::addressof(*_first));
         }
         throw;

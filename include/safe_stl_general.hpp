@@ -22,6 +22,7 @@ namespace saber
 using std::allocator_traits;
 using std::iterator_traits;
 using std::initializer_list;
+using std::swap;
 
 FILE*& fp_export(void);
 void set_export(FILE* _fp);

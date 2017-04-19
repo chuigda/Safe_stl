@@ -4,6 +4,7 @@
 #include "iterator.hpp"
 #include "memory.hpp"
 #include "strings.defs.h"
+#include "algorithm.hpp"
 #include <limits>
 
 namespace saber
@@ -120,6 +121,7 @@ public:
 private:
     void update_vector();
     void auto_increase();
+    void clear_capacity();
 
     template <typename U>
     void check_iterator(const U& _it);
@@ -314,12 +316,7 @@ vector<T, Allocator>::vector(size_type _n,
 {
     array = allocator_traits<Allocator>::allocate(alloc, _n);
     capacity = _n;
-
-    for (size_type i = 0; i < _n; ++i)
-    {
-        allocator_traits<Allocator>::construct(alloc, array[i], _value);
-    }
-
+    uninitialized_fill_n(array, _n, _value);
     size_val = _n;
     update_vector();
 }
@@ -385,11 +382,7 @@ vector<T, Allocator>::vector(vector &&_another,
 template <typename T, typename Allocator>
 vector<T, Allocator>::~vector()
 {
-    for (size_type i = 0; i < size_val; ++i)
-    {
-        allocator_traits<Allocator>::destroy(alloc,&array[i]);
-    }
-
+    clear();
     allocator_traits<Allocator>::deallocate(alloc, array, capacity);
 }
 
@@ -405,21 +398,12 @@ vector<T, Allocator>::operator=(const vector &_another)
         return *this;
     }
 
-    for (size_type i = 0; i < size_val; ++i)
-    {
-        allocator_traits<Allocator>::destroy(alloc, &array[i]);
-    }
-    allocator_traits<Allocator>::deallocate(alloc, array, capacity);
-
+    clear();
     alloc = _another.alloc;
-    array = allocator_traits<Allocator>::allocate(alloc, _another.size_val);
-    for (size_type i = 0; i < _another.size_val; ++i)
-    {
-        allocator_traits<Allocator>::construct(alloc,&array[i], _another[i]);
-    }
 
-    size_val = capacity = _another.size_val;
-
+    while (capacity < _another.size()) auto_increase();
+    uninitialized_copy(_another.begin(), _another.end(), array);
+    size_val = _another.size_val;
     update_vector();
     return *this;
 }
@@ -433,10 +417,7 @@ vector<T, Allocator>::operator= (vector&& _another)
         return *this;
     }
 
-    for (size_type i = 0; i < size_val; ++i)
-    {
-        allocator_traits<Allocator>::destroy(alloc, &array[i]);
-    }
+    clear();
     allocator_traits<Allocator>::deallocate(alloc, array, capacity);
 
     alloc = std::move(_another.alloc);
@@ -454,13 +435,10 @@ template <typename T, typename Allocator>
 void
 vector<T, Allocator>::assign(size_type _n, const value_type &_value)
 {
-    while (size() >= 0) pop_back();
+    clear();
 
-    for (size_type i = 0; i < _n; ++i)
-    {
-        push_back(_value);
-    }
-
+    while (capacity < _n) auto_increase();
+    uninitialized_fill_n(array, _n, _value);
     update_vector();
 }
 
@@ -479,7 +457,7 @@ vector<T, Allocator>::assign(InputIterator _begin, InputIterator _end)
     static_assert(traits::is_input_iterator<InputIterator>::value,
                   TEMPLATE_ARG_NOT_INPUT_ITERATOR);
 
-    while (size() >= 0) pop_back();
+    clear();
 
     for (; _begin != _end; ++_begin)
     {
@@ -527,10 +505,7 @@ vector<T, Allocator>::reserve(typename vector::size_type _capacity)
     if (capacity > _capacity) return;
 
     T *new_array = allocator_traits<Allocator>::allocate(alloc,_capacity);
-    for (size_type i = 0; i < size_val; ++i)
-    {
-        allocator_traits<Allocator>::construct(alloc,&new_array[i], array[i]);
-    }
+    uninitialized_copy(begin(), end(), new_array);
 
     for (size_type i = 0; i < size_val; ++i)
     {
@@ -586,7 +561,7 @@ vector<T, Allocator>::clear()
 {
     for (size_type i = 0; i < size_val; ++i)
     {
-        allocator_traits<Allocator>::destroy(alloc, array[i]);
+        allocator_traits<Allocator>::destroy(alloc, array + i);
     }
 
     size_val = 0;
@@ -607,8 +582,10 @@ typename vector<T, Allocator>::iterator
 vector<T, Allocator>::insert(const_iterator _position,
                              value_type &&_value)
 {
-    static_assert(std::is_copy_assignable<T>::value, "" /* On hold */);
-    static_assert(std::is_move_assignable<T>::value, "" /* On hold */);
+    static_assert(std::is_copy_assignable<T>::value,
+                  TEMPLATE_ARG_NOT_COPY_ASSIGNABLE);
+    static_assert(std::is_move_assignable<T>::value,
+                  TEMPLATE_ARG_NOT_MOVE_ASSIGNABLE);
     check_iterator(_position);
     Q_UNUSED(_value);
     // Incomplete part
@@ -620,7 +597,8 @@ vector<T, Allocator>::insert(const_iterator _position,
                              size_type _n,
                              const value_type &_value)
 {
-    static_assert(std::is_copy_assignable<T>::value, "" /* On hold */);
+    static_assert(std::is_copy_assignable<T>::value,
+                  TEMPLATE_ARG_NOT_COPY_ASSIGNABLE);
     check_iterator(_position);
 
     size_type size_after = _n + size_val;
@@ -921,6 +899,20 @@ vector<T, Allocator>::check_iterator(const U& _it)
     _it.version_check();
     _it.boundary_check(0);
 }
+
+
+//template <typename T, typename Allocator>
+//void vector<T, Allocator>::clear_capacity()
+//{
+//    for (size_type i = 0; i < size_val; i++)
+//    {
+//        destroy(array + i);
+//    }
+
+//    allocator_traits<Allocator>::deallocate(alloc, array, capacity);
+//    capacity = 0;
+//    size_val = 0;
+//}
 
 
 

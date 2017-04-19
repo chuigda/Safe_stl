@@ -27,6 +27,7 @@ void testcase_vector_1()
     {
         std::printf("%d ", another[i]);
     }
+
     std::putchar('\n');
 
     std::printf("\n\n");
