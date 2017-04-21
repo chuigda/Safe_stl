@@ -20,6 +20,9 @@ copy(InputIterator _first, InputIterator _last, OutputIterator _d_first)
     {
         *_d_first++ = *_first++;
     }
+
+    // for (; _first != _last; ++_d_first, ++_first
+
     return _d_first;
 }
 
@@ -58,6 +61,19 @@ copy_n(InputIterator _first, Size _count, OutputIterator _d_first)
     return _d_first;
 }
 
+template<class BidirectionalIterator, class OutputIterator>
+OutputIterator
+reverse_copy(BidirectionalIterator _first,
+             BidirectionalIterator _last,
+             OutputIterator _d_first)
+{
+    while (_first != _last)
+    {
+        *(_d_first++) = *(_last--);
+    }
+    return _d_first;
+}
+
 template <typename ForwardIterator, typename T>
 void
 fill(ForwardIterator _first, ForwardIterator _last, const T& _value)
@@ -74,7 +90,7 @@ fill_n(OutputIterator _first, Size _count, const T& _value)
 {
     for (Size i = 0; i < _count; i++)
     {
-        *_first++ = _value;
+        *(_first++) = _value;
     }
     return _first;
 }

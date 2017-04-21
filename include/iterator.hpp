@@ -70,7 +70,7 @@ struct has_output_iterator_func
 template <typename T>
 struct has_output_iterator_func
        <T, void_t<decltype(*std::declval<T>() = std::declval<typename T::value_type>()),
-                  decltype(*std::declval<T>()++ = std::declval<typename T::value_type>())>>
+                  decltype(*++std::declval<T>() = std::declval<typename T::value_type>())>>
 {
     using value_type = true_type;
     static constexpr bool value = true;

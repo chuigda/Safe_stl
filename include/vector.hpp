@@ -120,7 +120,7 @@ public:
 
 private:
     void update_vector();
-    void adjust_capacity(size_type _capacity);
+    void reallocate(size_type _capacity);
 
     void clear_elements();
     void clear_capacity();
@@ -159,8 +159,8 @@ public:
     iterator& operator-= (difference_type _n);
     iterator& operator++ ();
     iterator& operator-- ();
-    const iterator operator++(int);
-    const iterator operator--(int);
+    iterator operator++(int);
+    iterator operator--(int);
 
     iterator operator+ (difference_type _n) const;
     iterator operator- (difference_type _n) const;
@@ -181,22 +181,8 @@ private:
         update_count(_from->update_count)
     {}
 
-    void version_check() const
-    {
-        if (update_count != get_from->update_count)
-        {
-            stl_panic(OLD_ITERATOR);
-        }
-    }
-
-    void boundary_check(difference_type _offset) const
-    {
-        if (ptr + _offset >= &(get_from->array[get_from->size()])
-            || ptr + _offset < &(get_from->array[0]))
-        {
-            stl_panic(ITERATOR_OVERFLOW);
-        }
-    }
+    void version_check() const;
+    void boundary_check(difference_type _offset) const;
 
     vector *get_from;
     value_type *ptr;
@@ -247,22 +233,9 @@ private:
         update_count(_from->update_count)
     {}
 
-    void version_check() const
-    {
-        if (update_count != get_from->update_count)
-        {
-            stl_panic(OLD_ITERATOR);
-        }
-    }
+    void version_check() const;
 
-    void boundary_check(difference_type _offset) const
-    {
-        if (ptr + _offset >= &(get_from->array[get_from->size()])
-            || ptr + _offset < &(get_from->array[0]))
-        {
-            stl_panic(ITERATOR_OVERFLOW);
-        }
-    }
+    void boundary_check(difference_type _offset) const;
 
     const vector *get_from;
     const value_type *ptr;
@@ -402,7 +375,7 @@ vector<T, Allocator>::operator=(const vector &_another)
     clear();
     alloc = _another.alloc;
 
-    if (capacity() < _another.size()) adjust_capacity(_another.size());
+    if (capacity() < _another.size()) reallocate(_another.size());
     uninitialized_copy(_another.begin(), _another.end(), array);
     size_val = _another.size();
     update_vector();
@@ -438,7 +411,7 @@ vector<T, Allocator>::assign(size_type _n, const value_type &_value)
 {
     clear_elements();
 
-    if (capacity() < _n) adjust_capacity(_n);
+    if (capacity() < _n) reallocate(_n);
     uninitialized_fill_n(array, _n, _value);
     update_vector();
 }
@@ -523,7 +496,7 @@ template <typename T, typename Allocator>
 void
 vector<T, Allocator>::push_back(const T &_element)
 {
-    if (size() == capacity()) adjust_capacity(capacity() * 2);
+    if (size() == capacity()) reallocate(capacity() * 2);
 
     construct(&array[size()], _element);
     ++size_val;
@@ -535,7 +508,7 @@ template <typename T, typename Allocator>
 void
 vector<T, Allocator>::pop_back()
 {
-    destroy(&array[size_val-1]);
+    destroy_at(&array[size_val-1]);
     --size_val;
 
     update_vector();
@@ -546,7 +519,7 @@ template <typename... Args>
 void
 vector<T, Allocator>::emplace_back(Args... _args)
 {
-    if (size() == capacity()) adjust_capacity(capacity() * 2);
+    if (size() == capacity()) reallocate(capacity() * 2);
 
     construct(&array[size_val], _args...);
     ++size_val;
@@ -582,8 +555,8 @@ vector<T, Allocator>::insert(const_iterator _position,
     static_assert(std::is_move_assignable<T>::value,
                   TEMPLATE_ARG_NOT_MOVE_ASSIGNABLE);
     check_iterator(_position);
-    Q_UNUSED(_value);
-    // Incomplete part
+
+    insert(_position, 1, _value);
 }
 
 template <typename T, typename Allocator>
@@ -596,49 +569,46 @@ vector<T, Allocator>::insert(const_iterator _position,
                   TEMPLATE_ARG_NOT_COPY_ASSIGNABLE);
     check_iterator(_position);
 
-    size_type size_after = _n + size();
-
-    size_type position_diff = static_cast<size_type>(_position - cbegin());
-    value_type *new_array =
-            allocator_traits<Allocator>::allocate(alloc, size_after);
+    if (size() + _n <= capacity())
     {
-        size_type i;
-        for (i = 0; i < position_diff; ++i)
-        {
-            construct(&new_array[i], this->operator[](i));
-        }
+        iterator iter_temp(this, const_cast<value_type*>(_position.ptr));
+        reverse_copy(iter_temp, end(), iter_temp + _n);
+        fill_n(iter_temp, _n, _value);
 
-        size_type j;
-        for (j = 0; j < _n; ++j)
-        {
-            construct(&new_array[i + j], _value);
-        }
-        for (; i + j < size_after; ++i)
-        {
-            construct(&new_array[i + j], this->operator[](i));
-        }
+        update_vector();
+        return iterator(this, iter_temp.ptr);
+        return iter_temp;
     }
-
-    for (size_t i = 0; i < size(); ++i)
+    else
     {
-        destroy(&array[i]);
+        size_type add_all_size = size() + _n;
+        value_type *new_array =
+                allocator_traits<Allocator>::allocate(alloc, add_all_size);
+        difference_type position_diff = _position - cbegin();
+
+        uninitialized_copy(cbegin(), cbegin() + position_diff, new_array);
+        uninitialized_fill_n(new_array + position_diff, _n, _value);
+        uninitialized_copy(cbegin() + position_diff,
+                           cend(),
+                           new_array + position_diff + _n);
+
+        clear_elements();
+        clear_capacity();
+
+        array = new_array;
+        size_val = capacity_val = add_all_size;
+        update_vector();
+
+        return begin() + position_diff;
     }
-    allocator_traits<Allocator>::deallocate(alloc, array, capacity());
-
-    array = new_array;
-    new_array = nullptr;
-    capacity_val = size_val = size_after;
-
-    update_vector();
-    return iterator(this, array + position_diff);
 }
 
 template <typename T, typename Allocator>
 template <typename InputIterator>
 typename vector<T, Allocator>::iterator
 vector<T, Allocator>::insert(const_iterator _position,
-                             InputIterator _begin,
-                             InputIterator _end)
+                             InputIterator _first,
+                             InputIterator _last)
 {
     static_assert(std::is_copy_assignable<T>::value,
                   TEMPLATE_ARG_NOT_COPY_ASSIGNABLE);
@@ -646,9 +616,9 @@ vector<T, Allocator>::insert(const_iterator _position,
 
     difference_type position_diff = _position - cbegin();
 
-    for (; _begin != _end; ++_begin, ++_position)
+    for (; _first != _last; ++_first, ++_position)
     {
-        _position = const_iterator(this, insert(_position, *_begin).ptr);
+        _position = const_iterator(this, insert(_position, *_first.ptr));
     }
 
     return begin() + position_diff;
@@ -686,25 +656,35 @@ typename vector<T, Allocator>::iterator
 vector<T, Allocator>::erase(const_iterator _position)
 {
     check_iterator(_position);
+    update_vector();
 
+    iterator iter_temp(this, _position.ptr);
+    if (_position + 1 != cend())
+    {
+        return erase(_position, _position + 1);
+    }
 
-    // Incomplete part
+    return iter_temp;
 }
 
 template <typename T, typename Allocator>
 typename vector<T, Allocator>::iterator
-vector<T, Allocator>::erase(const_iterator _begin,
-                            const_iterator _end)
+vector<T, Allocator>::erase(const_iterator _first,
+                            const_iterator _last)
 {
-    check_iterator(_begin);
-    check_iterator(_end);
+    check_iterator(_first);
+    check_iterator(_last);
 
-    for (auto it = _begin; it != _end; ++it)
-    {
-        destroy(it.ptr);
-    }
+    update_vector();
 
-    // Incomplete part
+    iterator iter_first(this, const_cast<value_type*>(_first.ptr));
+    iterator iter_last(this, const_cast<value_type*>(_last.ptr));
+
+    iterator end_of_storage = copy(iter_last, end(), iter_first);
+    destroy(end_of_storage, end());
+
+    size_val = (cend() - (iter_last - iter_first)) - cbegin();
+    return iter_first;
 }
 
 template <typename T, typename Allocator>
@@ -713,21 +693,21 @@ vector<T, Allocator>::erase(const_reverse_iterator _position)
 {
     check_iterator(_position.base());
 
-    // Incomplete part
+    return reverse_iterator(erase(_position.base()));
 }
 
 template <typename T, typename Allocator>
 typename vector<T, Allocator>::reverse_iterator
-vector<T, Allocator>::erase(const_reverse_iterator _begin,
-                            const_reverse_iterator _end)
+vector<T, Allocator>::erase(const_reverse_iterator _first,
+                            const_reverse_iterator _last)
 {
     static_assert(std::is_move_assignable<T>::value,
                   TEMPLATE_ARG_NOT_MOVE_ASSIGNABLE);
 
-    check_iterator(_begin.base());
-    check_iterator(_end.base());
+    check_iterator(_first.base());
+    check_iterator(_last.base());
 
-    // Incomplete part
+    return reverse_iterator(erase(_last.base(), _first.base()));
 }
 
 template <typename T, typename Allocator>
@@ -864,7 +844,7 @@ vector<T, Allocator>::update_vector()
 
 template <typename T, typename Allocator>
 void
-vector<T, Allocator>::adjust_capacity(size_type _capacity)
+vector<T, Allocator>::reallocate(size_type _capacity)
 {
     value_type *new_array =
             allocator_traits<Allocator>::allocate(alloc, _capacity);
@@ -898,7 +878,7 @@ void vector<T, Allocator>::clear_elements()
 {
     for (size_t i = 0; i < size(); i++)
     {
-        destroy(array + i);
+        destroy_at(array + i);
     }
 }
 
@@ -1003,7 +983,7 @@ vector<T, Allocator>::iterator::operator--()
 }
 
 template <typename T, typename Allocator>
-const typename vector<T, Allocator>::iterator
+typename vector<T, Allocator>::iterator
 vector<T, Allocator>::iterator::operator++(int)
 {
     iterator ret = *this;
@@ -1012,7 +992,7 @@ vector<T, Allocator>::iterator::operator++(int)
 }
 
 template <typename T, typename Allocator>
-const typename vector<T, Allocator>::iterator
+typename vector<T, Allocator>::iterator
 vector<T, Allocator>::iterator::operator--(int)
 {
     iterator ret = *this;
@@ -1210,6 +1190,48 @@ vector<T, Allocator>::const_iterator::operator!=
     (const const_iterator& _another) const
 {
     return ! operator==(_another);
+}
+
+template<typename T, typename Allocator>
+void
+vector<T, Allocator>::iterator::version_check() const
+{
+    if (update_count != get_from->update_count)
+    {
+        stl_panic(OLD_ITERATOR);
+    }
+}
+
+template<typename T, typename Allocator>
+void
+vector<T, Allocator>::iterator::boundary_check(difference_type _offset) const
+{
+    if (ptr + _offset >= &(get_from->array[get_from->size()])
+            || ptr + _offset < &(get_from->array[0]))
+    {
+        stl_panic(ITERATOR_OVERFLOW);
+    }
+}
+
+template<typename T, typename Allocator>
+void
+vector<T, Allocator>::const_iterator::version_check() const
+{
+    if (update_count != get_from->update_count)
+    {
+        stl_panic(OLD_ITERATOR);
+    }
+}
+
+template<typename T, typename Allocator>
+void
+vector<T, Allocator>::const_iterator::boundary_check(difference_type _offset) const
+{
+    if (ptr + _offset >= &(get_from->array[get_from->size()])
+            || ptr + _offset < &(get_from->array[0]))
+    {
+        stl_panic(ITERATOR_OVERFLOW);
+    }
 }
 
 } // namespace saber

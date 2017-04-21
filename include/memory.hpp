@@ -15,11 +15,20 @@ construct(T* _xptr, Args... _args)
     ::new (reinterpret_cast<void*>(_xptr)) T(_args...);
 }
 
-template <typename T, typename... Args>
+template <typename T>
 void
-destroy(T* _xptr)
+destroy_at(T* _xptr)
 {
     _xptr->~T();
+}
+
+template <class ForwardIterator>
+void destroy(ForwardIterator _first, ForwardIterator _last)
+{
+  for (; _first != _last; ++_first)
+  {
+    destroy_at(std::addressof(*_first));
+  }
 }
 
 template <typename InputIterator, typename ForwardIterator>
@@ -47,7 +56,7 @@ uninitialized_copy(InputIterator _first,
     {
         for (; _d_first != current; ++_d_first)
         {
-            destroy(std::addressof(*_d_first));
+            destroy_at(std::addressof(*_d_first));
         }
         throw;
     }
@@ -129,7 +138,7 @@ ForwardIterator uninitialized_fill_n(ForwardIterator _first,
     {
         for (; _first != current; ++_first)
         {
-            destroy(std::addressof(*_first));
+            destroy_at(std::addressof(*_first));
         }
         throw;
     }
