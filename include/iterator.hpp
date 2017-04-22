@@ -3,6 +3,7 @@
 
 #include "safe_stl_general.hpp"
 #include "saber_traits.hpp"
+#include "strings.defs.h"
 #include <iterator>
 
 namespace saber

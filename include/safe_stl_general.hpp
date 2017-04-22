@@ -1,4 +1,8 @@
-﻿#ifndef SAFE_STL_GENERAL_HPP
+﻿/* ************************************************************************* *
+   
+ * ************************************************************************* */
+
+#ifndef SAFE_STL_GENERAL_HPP
 #define SAFE_STL_GENERAL_HPP
 
 #define SAFE_STL_ENABLE_WARNING
@@ -11,10 +15,9 @@
 #include <initializer_list>
 #include <memory>
 #include <limits>
+#include <cassert>
 
-#include "strings.defs.h"
-
-#define Q_UNUSED(__VARNAME) ((void)(__VARNAME))
+#define Q_UNUSED(_VARNAME) ((void)(_VARNAME))
 
 namespace saber
 {
@@ -26,8 +29,23 @@ using std::swap;
 
 FILE*& fp_export(void);
 void set_export(FILE* _fp);
-void stl_panic(const char* _description);
-void stl_warning(const char *_description);
+
+#define stl_panic(_DESC) \
+    {\
+    std::fprintf(fp_export(), "At file %s, line %d\n", __FILE__, __LINE__);\
+    std::fprintf(fp_export(), "STL panic called : %s\n", _DESC);\
+    std::abort();\
+    }
+
+#ifdef SAFE_STL_ENABLE_WARNING
+#   define stl_warning(_DESC)\
+    {\
+    std::fprintf(fp_export(), "At file %s, line %s\n", __FILE__, __LINE__);\
+    std::fprintf(fp_export(), "STL warning called : %s\n", _DESC);\
+    }
+#else
+#   define stl_warning(_DESC)
+#endif
 
 } // namespace saber
 

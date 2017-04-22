@@ -34,6 +34,9 @@
 #define TEMPLATE_ARG_NOT_MOVE_ASSIGNABLE\
     "Template argument T is not move-assignable"
 
+#define UNINITIALIZED_ITERATOR\
+    "This iterator did not get initialized"
+
 #define OLD_ITERATOR\
     "An manipulating operation has been performed on container object"
 

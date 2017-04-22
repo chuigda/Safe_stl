@@ -87,7 +87,7 @@ ForwardIterator uninitialized_copy_n(InputIterator _first,
     {
         for (; _d_first != current; ++_d_first)
         {
-            destroy(std::addressof(*_d_first));
+            destroy_at(std::addressof(*_d_first));
         }
         throw;
     }
@@ -112,7 +112,7 @@ void uninitialized_fill(ForwardIterator _first,
     {
         for (; _first != current; ++_first)
         {
-            destroy(std::addressof(*_first));
+            destroy_at(std::addressof(*_first));
         }
         throw;
     }
@@ -145,7 +145,6 @@ ForwardIterator uninitialized_fill_n(ForwardIterator _first,
     }
 }
 
-
 template <typename T>
 class default_allocator
 {
@@ -175,8 +174,11 @@ public:
     bool operator!= (const default_allocator&) const noexcept;
     default_allocator& operator= (const default_allocator&) noexcept;
 
-    template <typename U>
-    using other = default_allocator<U>;
+    template<typename U>
+    struct rebind
+    {
+        typedef default_allocator<U> other;
+    };
 };
 
 template<typename T>
@@ -234,5 +236,7 @@ default_allocator<T>::operator=(const default_allocator &) noexcept
 
 
 } // namespace saber
+
+#include <list>
 
 #endif // MEMORY_HPP
