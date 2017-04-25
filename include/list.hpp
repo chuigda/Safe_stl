@@ -29,7 +29,8 @@ public:
     using const_reverse_iterator = saber::reverse_iterator<const_iterator>;
     using allocator_type = Allocator;
 
-    list();
+    explicit list();
+    explicit list(const Allocator& _alloc);
     list(const list& _another);
     list(size_type _n);
     list(size_type _n, const value_type& _value);
@@ -39,65 +40,85 @@ public:
 
     ~list();
 
-    iterator begin();
-    iterator end();
+    iterator insert(const_iterator _position, const value_type& _value);
+    iterator insert(const_iterator _position, value_type&& _value);
+    iterator insert(const_iterator _position,
+                    size_type _n, const value_type &_value);
+    template <typename InputIterator>
+    iterator insert(const_iterator _position,
+                    InputIterator _first, InputIterator _last);
+    iterator insert(const_iterator _position,
+                    initializer_list<value_type> _ilist);
 
-    const_iterator begin() const;
-    const_iterator end() const;
+    template <typename... Args>
+    iterator emplace(const_iterator _position, Args&& ...args);
+    template <typename... Args>
+    iterator emplace_back(Args&& ...args);
+    template <typename... Args>
+    iterator emplace_front(Args&& ...args);
 
-    const_iterator cbegin() const;
-    const_iterator cend() const;
+    void push_back(const value_type& _value);
+    void push_front(const value_type& _value);
 
-    reverse_iterator rbegin();
-    reverse_iterator rend();
+    iterator erase(const_iterator _position);
+    iterator erase(const_iterator _first, const_iterator _last);
 
-    const_reverse_iterator rbegin() const;
-    const_reverse_iterator rend() const;
+    void pop_back();
+    void pop_front();
 
-    const_reverse_iterator crbegin() const;
-    const_reverse_iterator crend() const;
+    void clear() noexcept;
+
+    iterator begin() noexcept;
+    iterator end() noexcept;
+
+    const_iterator begin() const noexcept;
+    const_iterator end() const noexcept;
+
+    const_iterator cbegin() const noexcept;
+    const_iterator cend() const noexcept;
+
+    reverse_iterator rbegin() noexcept;
+    reverse_iterator rend() noexcept;
+
+    const_reverse_iterator rbegin() const noexcept;
+    const_reverse_iterator rend() const noexcept;
+
+    const_reverse_iterator crbegin() const noexcept;
+    const_reverse_iterator crend() const noexcept;
 
 private:
-    // Plain old data : list_node
-    // Must keep it POD. otherwise, blast.
-    struct list_node
+    struct list_node_base
     {
-        value_type value;
-        list_node *prev, *next;
+        list_node_base* prev = nullptr;
+        list_node_base* next = nullptr;
+
+        list_node_base() = default;
+        ~list_node_base() = default;
+    };
+
+    struct list_node : public list_node_base
+    {
+        T value;
+        template <typename... Args>
+        list_node(Args&& ..._args) : value(_args...) {}
+        ~list_node() = default;
     };
 
     using node_allocator_type =
         typename Allocator::template rebind<list_node>::other;
 
-    list_node *head = nullptr;
-
-    inline list_node* create_node()
-    {
-        list_node *new_node =
-                allocator_traits<node_allocator_type>::allocate(node_alloc, 1);
-    }
-
-    inline list_node* create_node(const value_type& _value)
-    {
-        list_node *new_node = get_node();
-        construct(std::addressof(new_node->value), _value);
-    }
-
-    inline void destroy_node(list_node *_node)
-    {
-        destroy_at(_node);
-        allocator_traits<node_allocator_type>::deallocate(node_alloc, _node, 1);
-    }
+    list_node_base head;
 
     allocator_type alloc;
     node_allocator_type node_alloc;
 
-    std::unordered_set<list_node*> nodes;
+    std::unordered_set<list_node_base*> nodes;
 };
 
 template <typename T, typename Allocator>
 class list<T, Allocator>::iterator
 {
+    friend class list;
 public:
     using iterator_category = std::bidirectional_iterator_tag;
     using value_type        = typename list::value_type;
@@ -113,23 +134,27 @@ public:
     reference operator* (void);
     const_reference operator* (void) const;
 
+    bool operator== (const iterator& _another) const;
+    bool operator!= (const iterator& _another) const;
+
     iterator& operator++ (void);
     iterator& operator-- (void);
     iterator operator++ (int);
     iterator operator-- (int);
 
 private:
-    iterator(list *_get_from, list::list_node *_node);
+    iterator(list *_get_from, list::list_node_base *_node);
     void full_check(void);
     void basic_check(void);
 
     list *get_from = nullptr;
-    list::list_node *node = nullptr;
+    list::list_node_base *node = nullptr;
 };
 
 template <typename T, typename Allocator>
 class list<T, Allocator>::const_iterator
 {
+    friend class list;
 public:
     using iterator_category = std::bidirectional_iterator_tag;
     using value_type        = typename list::value_type;
@@ -142,20 +167,22 @@ public:
     const_iterator(const const_iterator&) = default;
     ~const_iterator() = default;
 
-    const_reference operator* (void) const;
+    bool operator== (const const_iterator& _another) const;
+    bool operator!= (const const_iterator& _another) const;
 
+    const_reference operator* (void) const;
     const_iterator& operator++ (void);
     const_iterator& operator-- (void);
     const_iterator operator++ (int);
     const_iterator operator-- (int);
 
 private:
-    const_iterator(const list *_get_from, const list::list_node *_node);
+    const_iterator(const list *_get_from, const list::list_node_base *_node);
     void full_check(void);
     void basic_check(void);
 
     const list *get_from = nullptr;
-    const list::list_node *node = nullptr;
+    const typename list::list_node_base *node = nullptr;
 };
 
 template <typename T, typename Allocator>
@@ -163,108 +190,261 @@ list<T, Allocator>::list() :
     alloc(),
     node_alloc()
 {
-    head = get_node();
-    head->prev = head;
-    head->next = head;
+    head.prev = &head;
+    head.next = &head;
+
+    nodes.insert(&head);
+}
+
+template <typename T, typename Allocator>
+list<T, Allocator>::list(const Allocator &_alloc) :
+    alloc(_alloc),
+    node_alloc(alloc)
+{
+    head.prev = &head;
+    head.next = &head;
+
+    nodes.insert(&head);
 }
 
 template <typename T, typename Allocator>
 list<T, Allocator>::list(const list& _another) :
-    alloc(_another.alloc),
-    node_alloc(_another.alloc)
+    list(_another.alloc)
 {
-    // Incomplete part
+    for (auto it = _another.cbegin();
+         it != _another.cend();
+         ++it)
+    {
+        insert(cend(), *it);
+    }
+}
+
+template <typename T, typename Allocator>
+list<T, Allocator>::list(initializer_list<value_type> _ilist) :
+    list()
+{
+    for (auto it = _ilist.begin();
+         it != _ilist.end();
+         ++it)
+    {
+        insert(cend(), *it);
+    }
 }
 
 template <typename T, typename Allocator>
 list<T, Allocator>::~list()
 {
-    // Incomplete part
+    erase(cbegin(), cend());
 }
 
 template <typename T, typename Allocator>
 typename list<T, Allocator>::iterator
-list<T, Allocator>::begin()
+list<T, Allocator>::insert(const_iterator _position, const value_type &_value)
 {
-    return iterator(this, head->next);
+    iterator position(this, const_cast<list_node_base*>(_position.node));
+
+    list_node *node =
+            allocator_traits<node_allocator_type>::allocate(node_alloc, 1);
+    construct(node, _value);
+
+    node->prev = position.node->prev;
+    node->next = position.node;
+
+    position.node->prev->next = node;
+    position.node->prev = node;
+
+    nodes.insert(node);
+
+    return iterator(this, node);
 }
 
 template <typename T, typename Allocator>
 typename list<T, Allocator>::iterator
-list<T, Allocator>::end()
+list<T, Allocator>::insert(const_iterator _position, value_type &&_value)
 {
-    return iterator(this, head);
+    iterator position(this, const_cast<list_node_base*>(_position.node));
+
+    list_node *node =
+            allocator_traits<node_allocator_type>::allocate(node_alloc, 1);
+    construct(node, std::move(_value));
+
+    node->prev = position.node->prev;
+    node->next = position.node;
+
+    position.node->prev->next = node;
+    position.node->prev = node;
+
+    nodes.insert(node);
+
+    return iterator(this, node);
+}
+
+template <typename T, typename Allocator>
+typename list<T, Allocator>::iterator
+list<T, Allocator>::insert(const_iterator _position,
+                           size_type _n, const value_type &_value)
+{
+    for (size_type i = 0; i < _n; ++i)
+    {
+        insert(_position, _value);
+    }
+}
+
+template <typename T, typename Allocator>
+template <typename InputIterator>
+typename list<T, Allocator>::iterator
+list<T, Allocator>::insert(const_iterator _position,
+                           InputIterator _first, InputIterator _last)
+{
+    for (; _first != _last; ++_first)
+    {
+        insert(_position, *_first);
+    }
+}
+
+template <typename T, typename Allocator>
+typename list<T, Allocator>::iterator
+list<T, Allocator>::insert(const_iterator _position,
+                           initializer_list<value_type> _ilist)
+{
+    for (auto it = _ilist.begin();
+         it != _ilist.end();
+         ++it)
+    {
+        insert(_position, *it);
+    }
+}
+
+template <typename T, typename Allocator>
+typename list<T, Allocator>::iterator
+list<T, Allocator>::erase(const_iterator _position)
+{
+    list_node_base *prev = _position.node->prev,
+                   *next = _position.node->next;
+
+    prev->next = next;
+    next->prev = prev;
+
+    list_node_base *mutable_node =
+            const_cast<list_node_base*>(_position.node);
+    list_node *converted_node =
+            reinterpret_cast<list_node*>(mutable_node);
+
+    nodes.erase(mutable_node);
+    destroy_at(converted_node);
+    allocator_traits<node_allocator_type>::deallocate(node_alloc,
+                                                      converted_node, 1);
+    return iterator(this, next);
+}
+
+template <typename T, typename Allocator>
+typename list<T, Allocator>::iterator
+list<T, Allocator>::erase(const_iterator _first, const_iterator _last)
+{
+    for  (; _first != _last; ++_first)
+    {
+        erase(_first);
+    }
+
+    return iterator(this, const_cast<list_node_base*>(_last.node));
+}
+
+template <typename T, typename Allocator>
+typename list<T, Allocator>::iterator
+list<T, Allocator>::begin() noexcept
+{
+    return iterator(this, head.next);
+}
+
+template <typename T, typename Allocator>
+typename list<T, Allocator>::iterator
+list<T, Allocator>::end() noexcept
+{
+    return iterator(this, &head);
 }
 
 template <typename T, typename Allocator>
 typename list<T, Allocator>::const_iterator
-list<T, Allocator>::begin() const
+list<T, Allocator>::begin() const noexcept
 {
-    return const_iterator(this, head->next);
+    return const_iterator(this, head.next);
 }
 
 template <typename T, typename Allocator>
 typename list<T, Allocator>::const_iterator
-list<T, Allocator>::end() const
+list<T, Allocator>::end() const noexcept
 {
-    return const_iterator(this, head);
+    return const_iterator(this, &head);
 }
 
 template <typename T, typename Allocator>
 typename list<T, Allocator>::const_iterator
-list<T, Allocator>::cbegin() const
+list<T, Allocator>::cbegin() const noexcept
 {
     return begin();
 }
 
 template <typename T, typename Allocator>
 typename list<T, Allocator>::const_iterator
-list<T, Allocator>::cend() const
+list<T, Allocator>::cend() const noexcept
 {
     return end();
 }
 
 template <typename T, typename Allocator>
 typename list<T, Allocator>::reverse_iterator
-list<T, Allocator>::rbegin()
+list<T, Allocator>::rbegin() noexcept
 {
     return reverse_iterator(end());
 }
 
 template <typename T, typename Allocator>
 typename list<T, Allocator>::reverse_iterator
-list<T, Allocator>::rend()
+list<T, Allocator>::rend() noexcept
 {
     return reverse_iterator(begin());
 }
 
 template <typename T, typename Allocator>
 typename list<T, Allocator>::const_reverse_iterator
-list<T, Allocator>::rbegin() const
+list<T, Allocator>::rbegin() const noexcept
 {
     return const_reverse_iterator(cend());
 }
 
 template <typename T, typename Allocator>
 typename list<T, Allocator>::const_reverse_iterator
-list<T, Allocator>::rend() const
+list<T, Allocator>::rend() const noexcept
 {
     return const_reverse_iterator(cbegin());
-}    using node_allocator_type =
-typename Allocator::template rebind<list_node>::other;
+}
 
 template <typename T, typename Allocator>
 typename list<T, Allocator>::const_reverse_iterator
-list<T, Allocator>::crbegin() const
+list<T, Allocator>::crbegin() const noexcept
 {
     return rbegin();
 }
 
 template <typename T, typename Allocator>
 typename list<T, Allocator>::const_reverse_iterator
-list<T, Allocator>::crend() const
+list<T, Allocator>::crend() const noexcept
 {
     return rend();
+}
+
+template <typename T, typename Allocator>
+bool
+list<T, Allocator>::iterator::operator== (const iterator& _another) const
+{
+    return node == _another.node;
+}
+
+template <typename T, typename Allocator>
+bool
+list<T, Allocator>::iterator::operator!= (const iterator& _another) const
+{
+    return ! operator==(_another);
 }
 
 template <typename T, typename Allocator>
@@ -272,7 +452,7 @@ typename list<T, Allocator>::iterator::reference
 list<T, Allocator>::iterator::operator*()
 {
     full_check();
-    return node->value;
+    return (reinterpret_cast<typename list::list_node*>(node))->value;
 }
 
 template <typename T, typename Allocator>
@@ -280,7 +460,7 @@ typename list<T, Allocator>::iterator::const_reference
 list<T, Allocator>::iterator::operator*() const
 {
     full_check();
-    return node->value;
+    return (reinterpret_cast<const typename list::list_node*>(node))->value;
 }
 
 template <typename T, typename Allocator>
@@ -323,7 +503,7 @@ list<T, Allocator>::iterator::operator--(int)
 
 template <typename T, typename Allocator>
 list<T, Allocator>::iterator::iterator(list *_get_from,
-                                       list::list_node *_node) :
+                                       list::list_node_base *_node) :
     get_from(_get_from),
     node(_node)
 {
@@ -334,7 +514,10 @@ void
 list<T, Allocator>::iterator::full_check()
 {
     basic_check();
-    /* On hold */
+    if (get_from->nodes.find(node) == get_from->nodes.cend())
+    {
+        stl_panic(OLD_ITERATOR);
+    }
 }
 
 template <typename T, typename Allocator>
@@ -343,13 +526,29 @@ list<T, Allocator>::iterator::basic_check()
 {
     if (nullptr == get_from)
     {
+        assert(nullptr == node);
         stl_panic(UNINITIALIZED_ITERATOR);
     }
 
-    if (nullptr == node)
+    if (&(get_from->head) == node)
     {
+        assert(nullptr != node);
         stl_panic(ITERATOR_OVERFLOW);
     }
+}
+
+template <typename T, typename Allocator>
+bool
+list<T, Allocator>::const_iterator::operator== (const const_iterator& _another) const
+{
+    return node == _another.node;
+}
+
+template <typename T, typename Allocator>
+bool
+list<T, Allocator>::const_iterator::operator!= (const const_iterator& _another) const
+{
+    return ! operator==(_another);
 }
 
 template <typename T, typename Allocator>
@@ -392,7 +591,7 @@ list<T, Allocator>::const_iterator::operator--(int)
 
 template <typename T, typename Allocator>
 list<T, Allocator>::const_iterator::const_iterator(const list *_get_from,
-                                                   const list::list_node *_node) :
+                                                   const list::list_node_base *_node) :
     get_from(_get_from),
     node(_node)
 {
@@ -403,7 +602,10 @@ void
 list<T, Allocator>::const_iterator::full_check()
 {
     basic_check();
-    /* On hold */
+    if (get_from->nodes.find(node) == get_from->nodes.cend())
+    {
+        stl_panic(OLD_ITERATOR);
+    }
 }
 
 template <typename T, typename Allocator>
@@ -412,11 +614,13 @@ list<T, Allocator>::const_iterator::basic_check()
 {
     if (nullptr == get_from)
     {
+        assert(nullptr == node);
         stl_panic(UNINITIALIZED_ITERATOR);
     }
 
-    if (nullptr == node)
+    if (&(get_from->head) == node)
     {
+        assert(nullptr != node);
         stl_panic(ITERATOR_OVERFLOW);
     }
 }

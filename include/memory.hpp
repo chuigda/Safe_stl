@@ -10,9 +10,9 @@ namespace saber
 
 template <typename T, typename... Args>
 void
-construct(T* _xptr, Args... _args)
+construct(T* _xptr, Args&&... _args)
 {
-    ::new (reinterpret_cast<void*>(_xptr)) T(_args...);
+    ::new (reinterpret_cast<void*>(_xptr)) T(std::forward<Args>(_args)...);
 }
 
 template <typename T>

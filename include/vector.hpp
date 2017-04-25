@@ -100,23 +100,23 @@ public:
     const_reference at(size_type _index) const;
     const_reference operator[] (size_type _index) const;
 
-    iterator begin();
-    iterator end();
+    iterator begin() noexcept;
+    iterator end() noexcept;
 
-    const_iterator begin() const;
-    const_iterator end() const;
+    const_iterator begin() const noexcept;
+    const_iterator end() const noexcept;
 
-    const_iterator cbegin() const;
-    const_iterator cend() const;
+    const_iterator cbegin() const noexcept;
+    const_iterator cend() const noexcept;
 
-    reverse_iterator rbegin();
-    reverse_iterator rend();
+    reverse_iterator rbegin() noexcept;
+    reverse_iterator rend() noexcept;
 
-    const_reverse_iterator rbegin() const;
-    const_reverse_iterator rend() const;
+    const_reverse_iterator rbegin() const noexcept;
+    const_reverse_iterator rend() const noexcept;
 
-    const_reverse_iterator crbegin() const;
-    const_reverse_iterator crend() const;
+    const_reverse_iterator crbegin() const noexcept;
+    const_reverse_iterator crend() const noexcept;
 
 private:
     void update_vector();
@@ -746,84 +746,84 @@ vector<T, Allocator>::operator[](typename vector::size_type _index) const
 
 template <typename T, typename Allocator>
 typename vector<T, Allocator>::iterator
-vector<T, Allocator>::begin()
+vector<T, Allocator>::begin() noexcept
 {
     return iterator(this, &array[0]);
 }
 
 template <typename T, typename Allocator>
 typename vector<T, Allocator>::iterator
-vector<T, Allocator>::end()
+vector<T, Allocator>::end() noexcept
 {
     return iterator(this, &array[size()]);
 }
 
 template <typename T, typename Allocator>
 typename vector<T, Allocator>::const_iterator
-vector<T, Allocator>::begin() const
+vector<T, Allocator>::begin() const noexcept
 {
     return const_iterator(this, &array[0]);
 }
 
 template <typename T, typename Allocator>
 typename vector<T, Allocator>::const_iterator
-vector<T, Allocator>::end() const
+vector<T, Allocator>::end() const noexcept
 {
     return const_iterator(this, &array[size()]);
 }
 
 template <typename T, typename Allocator>
 typename vector<T, Allocator>::const_iterator
-vector<T, Allocator>::cbegin() const
+vector<T, Allocator>::cbegin() const noexcept
 {
     return const_iterator(this, &array[0]);
 }
 
 template <typename T, typename Allocator>
 typename vector<T, Allocator>::const_iterator
-vector<T, Allocator>::cend() const
+vector<T, Allocator>::cend() const noexcept
 {
     return const_iterator(this, &array[size()]);
 }
 
 template <typename T, typename Allocator>
 typename vector<T, Allocator>::reverse_iterator
-vector<T, Allocator>::rbegin()
+vector<T, Allocator>::rbegin() noexcept
 {
     return reverse_iterator(end());
 }
 
 template <typename T, typename Allocator>
 typename vector<T, Allocator>::reverse_iterator
-vector<T, Allocator>::rend()
+vector<T, Allocator>::rend() noexcept
 {
     return reverse_iterator(begin());
 }
 
 template <typename T, typename Allocator>
 typename vector<T, Allocator>::const_reverse_iterator
-vector<T, Allocator>::rbegin() const
+vector<T, Allocator>::rbegin() const noexcept
 {
     return const_reverse_iterator(end());
 }
 
 template <typename T, typename Allocator>
 typename vector<T, Allocator>::const_reverse_iterator
-vector<T, Allocator>::rend() const
+vector<T, Allocator>::rend() const noexcept
 {
     return const_reverse_iterator(begin());
 }
 
 template <typename T, typename Allocator>
 typename vector<T, Allocator>::const_reverse_iterator
-vector<T, Allocator>::crbegin() const
+vector<T, Allocator>::crbegin() const noexcept
 {
     return const_reverse_iterator(rend());
 }
 
 template <typename T, typename Allocator>
 typename vector<T, Allocator>::const_reverse_iterator
-vector<T, Allocator>::crend() const
+vector<T, Allocator>::crend() const noexcept
 {
     return const_reverse_iterator(rbegin());
 }

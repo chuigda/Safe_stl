@@ -67,7 +67,7 @@ void set_export(FILE* _fp);
 #ifdef SAFE_STL_ENABLE_WARNING
 #   define stl_warning(_DESC)\
     {\
-    std::fprintf(fp_export(), "At file %s, line %s\n", __FILE__, __LINE__);\
+    std::fprintf(fp_export(), "At file %s, line %d\n", __FILE__, __LINE__);\
     std::fprintf(fp_export(), "STL warning called : %s\n", _DESC);\
     }
 #else
