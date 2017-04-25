@@ -21,8 +21,6 @@ copy(InputIterator _first, InputIterator _last, OutputIterator _d_first)
         *_d_first++ = *_first++;
     }
 
-    // for (; _first != _last; ++_d_first, ++_first
-
     return _d_first;
 }
 

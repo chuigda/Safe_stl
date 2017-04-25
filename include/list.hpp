@@ -6,6 +6,8 @@
 #include "memory.hpp"
 #include "saber_traits.hpp"
 
+#include <unordered_set>
+
 namespace saber
 {
 
@@ -37,25 +39,60 @@ public:
 
     ~list();
 
+    iterator begin();
+    iterator end();
+
+    const_iterator begin() const;
+    const_iterator end() const;
+
+    const_iterator cbegin() const;
+    const_iterator cend() const;
+
+    reverse_iterator rbegin();
+    reverse_iterator rend();
+
+    const_reverse_iterator rbegin() const;
+    const_reverse_iterator rend() const;
+
+    const_reverse_iterator crbegin() const;
+    const_reverse_iterator crend() const;
+
 private:
+    // Plain old data : list_node
+    // Must keep it POD. otherwise, blast.
     struct list_node
     {
-        template <typename... Args>
-        list_node(Args... _args) : value(_args...) {}
-
-        T value;
-        mutable list_node *prev = nullptr,
-                          *next = nullptr;
+        value_type value;
+        list_node *prev, *next;
     };
 
     using node_allocator_type =
         typename Allocator::template rebind<list_node>::other;
 
-    list_node *head = nullptr,
-              *tail = nullptr;
+    list_node *head = nullptr;
+
+    inline list_node* create_node()
+    {
+        list_node *new_node =
+                allocator_traits<node_allocator_type>::allocate(node_alloc, 1);
+    }
+
+    inline list_node* create_node(const value_type& _value)
+    {
+        list_node *new_node = get_node();
+        construct(std::addressof(new_node->value), _value);
+    }
+
+    inline void destroy_node(list_node *_node)
+    {
+        destroy_at(_node);
+        allocator_traits<node_allocator_type>::deallocate(node_alloc, _node, 1);
+    }
 
     allocator_type alloc;
     node_allocator_type node_alloc;
+
+    std::unordered_set<list_node*> nodes;
 };
 
 template <typename T, typename Allocator>
@@ -126,6 +163,9 @@ list<T, Allocator>::list() :
     alloc(),
     node_alloc()
 {
+    head = get_node();
+    head->prev = head;
+    head->next = head;
 }
 
 template <typename T, typename Allocator>
@@ -134,6 +174,97 @@ list<T, Allocator>::list(const list& _another) :
     node_alloc(_another.alloc)
 {
     // Incomplete part
+}
+
+template <typename T, typename Allocator>
+list<T, Allocator>::~list()
+{
+    // Incomplete part
+}
+
+template <typename T, typename Allocator>
+typename list<T, Allocator>::iterator
+list<T, Allocator>::begin()
+{
+    return iterator(this, head->next);
+}
+
+template <typename T, typename Allocator>
+typename list<T, Allocator>::iterator
+list<T, Allocator>::end()
+{
+    return iterator(this, head);
+}
+
+template <typename T, typename Allocator>
+typename list<T, Allocator>::const_iterator
+list<T, Allocator>::begin() const
+{
+    return const_iterator(this, head->next);
+}
+
+template <typename T, typename Allocator>
+typename list<T, Allocator>::const_iterator
+list<T, Allocator>::end() const
+{
+    return const_iterator(this, head);
+}
+
+template <typename T, typename Allocator>
+typename list<T, Allocator>::const_iterator
+list<T, Allocator>::cbegin() const
+{
+    return begin();
+}
+
+template <typename T, typename Allocator>
+typename list<T, Allocator>::const_iterator
+list<T, Allocator>::cend() const
+{
+    return end();
+}
+
+template <typename T, typename Allocator>
+typename list<T, Allocator>::reverse_iterator
+list<T, Allocator>::rbegin()
+{
+    return reverse_iterator(end());
+}
+
+template <typename T, typename Allocator>
+typename list<T, Allocator>::reverse_iterator
+list<T, Allocator>::rend()
+{
+    return reverse_iterator(begin());
+}
+
+template <typename T, typename Allocator>
+typename list<T, Allocator>::const_reverse_iterator
+list<T, Allocator>::rbegin() const
+{
+    return const_reverse_iterator(cend());
+}
+
+template <typename T, typename Allocator>
+typename list<T, Allocator>::const_reverse_iterator
+list<T, Allocator>::rend() const
+{
+    return const_reverse_iterator(cbegin());
+}    using node_allocator_type =
+typename Allocator::template rebind<list_node>::other;
+
+template <typename T, typename Allocator>
+typename list<T, Allocator>::const_reverse_iterator
+list<T, Allocator>::crbegin() const
+{
+    return rbegin();
+}
+
+template <typename T, typename Allocator>
+typename list<T, Allocator>::const_reverse_iterator
+list<T, Allocator>::crend() const
+{
+    return rend();
 }
 
 template <typename T, typename Allocator>
