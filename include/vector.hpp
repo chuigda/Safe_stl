@@ -1092,7 +1092,6 @@ vector<T, Allocator>::const_iterator::operator++ ()
     return *this;
 }
 
-
 template <typename T, typename Allocator>
 typename vector<T, Allocator>::const_iterator&
 vector<T, Allocator>::const_iterator::operator--()

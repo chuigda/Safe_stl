@@ -129,6 +129,7 @@ public:
 
     iterator() = default;
     iterator(const iterator&) = default;
+    iterator(const typename list::const_iterator& _const_iterator);
     ~iterator() = default;
 
     reference operator* (void);
@@ -315,6 +316,20 @@ list<T, Allocator>::insert(const_iterator _position,
 }
 
 template <typename T, typename Allocator>
+void
+list<T, Allocator>::push_back(const value_type &_value)
+{
+    insert(cend(), _value);
+}
+
+template <typename T, typename Allocator>
+void
+list<T, Allocator>::push_front(const value_type &_value)
+{
+    insert(cbegin(), _value);
+}
+
+template <typename T, typename Allocator>
 typename list<T, Allocator>::iterator
 list<T, Allocator>::erase(const_iterator _position)
 {
@@ -346,6 +361,27 @@ list<T, Allocator>::erase(const_iterator _first, const_iterator _last)
     }
 
     return iterator(this, const_cast<list_node_base*>(_last.node));
+}
+
+template <typename T, typename Allocator>
+void
+list<T, Allocator>::pop_back()
+{
+    erase(--cend());
+}
+
+template <typename T, typename Allocator>
+void
+list<T, Allocator>::pop_front()
+{
+    erase(cbegin());
+}
+
+template <typename T, typename Allocator>
+void
+list<T, Allocator>::clear() noexcept
+{
+    erase(cbegin(), cend());
 }
 
 template <typename T, typename Allocator>
@@ -433,6 +469,14 @@ list<T, Allocator>::crend() const noexcept
 }
 
 template <typename T, typename Allocator>
+list<T, Allocator>::iterator::iterator(
+        const typename list::const_iterator& _const_iterator)
+{
+    get_from = const_cast<list*>(_const_iterator.get_from);
+    node = const_cast<typename list::list_node_base*>(_const_iterator.node);
+}
+
+template <typename T, typename Allocator>
 bool
 list<T, Allocator>::iterator::operator== (const iterator& _another) const
 {
@@ -466,7 +510,7 @@ template <typename T, typename Allocator>
 typename list<T, Allocator>::iterator&
 list<T, Allocator>::iterator::operator++()
 {
-    basic_check();
+    // basic_check();
     node = node->next;
     return *this;
 }
@@ -475,7 +519,7 @@ template <typename T, typename Allocator>
 typename list<T, Allocator>::iterator&
 list<T, Allocator>::iterator::operator--()
 {
-    basic_check();
+    // basic_check();
     node = node->prev;
     return *this;
 }
@@ -484,7 +528,7 @@ template <typename T, typename Allocator>
 typename list<T, Allocator>::iterator
 list<T, Allocator>::iterator::operator++(int)
 {
-    basic_check();
+    // basic_check();
     iterator ret(*this);
     node = node->next;
     return ret;
@@ -494,7 +538,7 @@ template <typename T, typename Allocator>
 typename list<T, Allocator>::iterator
 list<T, Allocator>::iterator::operator--(int)
 {
-    basic_check();
+    // basic_check();
     iterator ret(*this);
     node = node->prev;
     return ret;

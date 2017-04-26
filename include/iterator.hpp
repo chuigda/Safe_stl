@@ -258,7 +258,7 @@ public:
     bool operator== (const reverse_iterator& _another) const;
     bool operator!= (const reverse_iterator& _another) const;
 
-    iterator_type base() { return actual_iter; }
+    iterator_type base() const { return actual_iter; }
 
 private:
     Iterator actual_iter;
@@ -272,7 +272,7 @@ reverse_iterator<Iterator>::reverse_iterator(Iterator _iter) :
 template <typename Iterator>
 template <typename U>
 reverse_iterator<Iterator>::reverse_iterator(const reverse_iterator<U> &_ri)
-    : actual_iter(_ri.base())
+    : reverse_iterator(_ri.base())
 {}
 
 template <typename Iterator>
@@ -420,8 +420,6 @@ template <typename Iterator>
 bool
 reverse_iterator<Iterator>::operator!= (const reverse_iterator &_another) const
 {
-    static_assert(traits::is_random_access_iterator<Iterator>::value,
-                  TEMPLATE_ARG_NOT_RANDOM_ACCESS_ITERATOR);
     return actual_iter != _another.actual_iter;
 }
 
