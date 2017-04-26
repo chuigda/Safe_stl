@@ -165,6 +165,8 @@ public:
 
     const_iterator() = default;
     const_iterator(const const_iterator&) = default;
+    // See C++ Defect Report #179
+    const_iterator(const typename list::iterator& _mutable_iterator);
     ~const_iterator() = default;
 
     bool operator== (const const_iterator& _another) const;
@@ -300,6 +302,8 @@ list<T, Allocator>::insert(const_iterator _position,
     {
         insert(_position, *_first);
     }
+
+    return iterator(this, const_cast<list_node_base*>(_position.node));
 }
 
 template <typename T, typename Allocator>
@@ -307,12 +311,7 @@ typename list<T, Allocator>::iterator
 list<T, Allocator>::insert(const_iterator _position,
                            initializer_list<value_type> _ilist)
 {
-    for (auto it = _ilist.begin();
-         it != _ilist.end();
-         ++it)
-    {
-        insert(_position, *it);
-    }
+    return insert(_position, _ilist.begin(), _ilist.end());
 }
 
 template <typename T, typename Allocator>
@@ -538,15 +537,25 @@ list<T, Allocator>::iterator::basic_check()
 }
 
 template <typename T, typename Allocator>
+list<T, Allocator>::const_iterator::const_iterator(
+        const typename list::iterator& _mutable_iterator)
+{
+    get_from = _mutable_iterator.get_from;
+    node = _mutable_iterator.node;
+}
+
+template <typename T, typename Allocator>
 bool
-list<T, Allocator>::const_iterator::operator== (const const_iterator& _another) const
+list<T, Allocator>::const_iterator::operator== (
+        const const_iterator& _another) const
 {
     return node == _another.node;
 }
 
 template <typename T, typename Allocator>
 bool
-list<T, Allocator>::const_iterator::operator!= (const const_iterator& _another) const
+list<T, Allocator>::const_iterator::operator!= (
+        const const_iterator& _another) const
 {
     return ! operator==(_another);
 }
@@ -590,8 +599,9 @@ list<T, Allocator>::const_iterator::operator--(int)
 }
 
 template <typename T, typename Allocator>
-list<T, Allocator>::const_iterator::const_iterator(const list *_get_from,
-                                                   const list::list_node_base *_node) :
+list<T, Allocator>::const_iterator::const_iterator(
+        const list *_get_from,
+        const list::list_node_base *_node) :
     get_from(_get_from),
     node(_node)
 {
