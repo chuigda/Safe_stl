@@ -144,12 +144,12 @@ public:
     iterator operator-- (int);
 
 private:
-    iterator(list *_get_from, list::list_node_base *_node);
+    iterator(list *_get_from, typename list::list_node_base *_node);
     void full_check(void);
     void basic_check(void);
 
     list *get_from = nullptr;
-    list::list_node_base *node = nullptr;
+    typename list::list_node_base *node = nullptr;
 };
 
 template <typename T, typename Allocator>
@@ -180,7 +180,7 @@ public:
     const_iterator operator-- (int);
 
 private:
-    const_iterator(const list *_get_from, const list::list_node_base *_node);
+    const_iterator(const list *_get_from, const typename list::list_node_base *_node);
     void full_check(void);
     void basic_check(void);
 
@@ -355,11 +355,7 @@ template <typename T, typename Allocator>
 typename list<T, Allocator>::iterator
 list<T, Allocator>::erase(const_iterator _first, const_iterator _last)
 {
-    for  (; _first != _last; ++_first)
-    {
-        erase(_first);
-    }
-
+    for  (; _first != _last; _first = erase(_first));
     return iterator(this, const_cast<list_node_base*>(_last.node));
 }
 
@@ -546,7 +542,7 @@ list<T, Allocator>::iterator::operator--(int)
 
 template <typename T, typename Allocator>
 list<T, Allocator>::iterator::iterator(list *_get_from,
-                                       list::list_node_base *_node) :
+                                       typename list::list_node_base *_node) :
     get_from(_get_from),
     node(_node)
 {
@@ -645,7 +641,7 @@ list<T, Allocator>::const_iterator::operator--(int)
 template <typename T, typename Allocator>
 list<T, Allocator>::const_iterator::const_iterator(
         const list *_get_from,
-        const list::list_node_base *_node) :
+        const typename list::list_node_base *_node) :
     get_from(_get_from),
     node(_node)
 {
