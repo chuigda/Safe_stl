@@ -37,8 +37,10 @@ public:
     template <typename InputIterator>
     list(InputIterator _first, InputIterator _last);
     list(std::initializer_list<value_type> _list);
-
     ~list();
+
+    size_type size() const;
+    bool empty() const;
 
     iterator insert(const_iterator _position, const value_type& _value);
     iterator insert(const_iterator _position, value_type&& _value);
@@ -67,6 +69,12 @@ public:
     void pop_front();
 
     void clear() noexcept;
+
+    void remove(const value_type& _value);
+    template <typename UnaryPredicate>
+    void remove_if(UnaryPredicate _pred);
+
+    void unique();
 
     iterator begin() noexcept;
     iterator end() noexcept;
@@ -104,6 +112,9 @@ private:
         ~list_node() = default;
     };
 
+    template <typename ListIterator>
+    void check_iterator(const ListIterator& _it) const;
+
     using node_allocator_type =
         typename Allocator::template rebind<list_node>::other;
 
@@ -112,7 +123,7 @@ private:
     allocator_type alloc;
     node_allocator_type node_alloc;
 
-    std::unordered_set<list_node_base*> nodes;
+    std::unordered_set<const list_node_base*> nodes;
 };
 
 template <typename T, typename Allocator>
@@ -145,8 +156,8 @@ public:
 
 private:
     iterator(list *_get_from, typename list::list_node_base *_node);
-    void full_check(void);
-    void basic_check(void);
+    void full_check(void) const;
+    void basic_check(void) const;
 
     list *get_from = nullptr;
     typename list::list_node_base *node = nullptr;
@@ -181,8 +192,8 @@ public:
 
 private:
     const_iterator(const list *_get_from, const typename list::list_node_base *_node);
-    void full_check(void);
-    void basic_check(void);
+    void full_check(void) const;
+    void basic_check(void) const;
 
     const list *get_from = nullptr;
     const typename list::list_node_base *node = nullptr;
@@ -241,9 +252,26 @@ list<T, Allocator>::~list()
 }
 
 template <typename T, typename Allocator>
+typename list<T, Allocator>::size_type
+list<T, Allocator>::size() const
+{
+    size_type ret = 0;
+    for (auto it = cbegin(); it != cend(); ++it, ++ret);
+    return ret;
+}
+
+template <typename T, typename Allocator>
+bool
+list<T, Allocator>::empty() const
+{
+    return (head.next == head);
+}
+
+template <typename T, typename Allocator>
 typename list<T, Allocator>::iterator
 list<T, Allocator>::insert(const_iterator _position, const value_type &_value)
 {
+    check_iterator(_position);
     iterator position(this, const_cast<list_node_base*>(_position.node));
 
     list_node *node =
@@ -265,6 +293,7 @@ template <typename T, typename Allocator>
 typename list<T, Allocator>::iterator
 list<T, Allocator>::insert(const_iterator _position, value_type &&_value)
 {
+    check_iterator(_position);
     iterator position(this, const_cast<list_node_base*>(_position.node));
 
     list_node *node =
@@ -287,6 +316,7 @@ typename list<T, Allocator>::iterator
 list<T, Allocator>::insert(const_iterator _position,
                            size_type _n, const value_type &_value)
 {
+    check_iterator(_position);
     for (size_type i = 0; i < _n; ++i)
     {
         insert(_position, _value);
@@ -333,6 +363,7 @@ template <typename T, typename Allocator>
 typename list<T, Allocator>::iterator
 list<T, Allocator>::erase(const_iterator _position)
 {
+    check_iterator(_position);
     list_node_base *prev = _position.node->prev,
                    *next = _position.node->next;
 
@@ -355,6 +386,7 @@ template <typename T, typename Allocator>
 typename list<T, Allocator>::iterator
 list<T, Allocator>::erase(const_iterator _first, const_iterator _last)
 {
+    check_iterator(_last);
     for  (; _first != _last; _first = erase(_first));
     return iterator(this, const_cast<list_node_base*>(_last.node));
 }
@@ -378,6 +410,43 @@ void
 list<T, Allocator>::clear() noexcept
 {
     erase(cbegin(), cend());
+}
+
+template <typename T, typename Allocator>
+void
+list<T, Allocator>::remove(const value_type &_value)
+{
+    remove_if(
+        [&](const value_type& _another) -> bool
+        {
+            return _another == _value;
+        }
+    );
+}
+
+template <typename T, typename Allocator>
+template <typename UnaryPredicate>
+void
+list<T, Allocator>::remove_if(UnaryPredicate _pred)
+{
+    for (auto it = begin(); it != end();)
+    {
+        if (_pred(*it))
+        {
+            it = erase(it);
+        }
+        else
+        {
+            ++it;
+        }
+    }
+}
+
+template <typename T, typename Allocator>
+void
+list<T, Allocator>::unique()
+{
+
 }
 
 template <typename T, typename Allocator>
@@ -465,6 +534,20 @@ list<T, Allocator>::crend() const noexcept
 }
 
 template <typename T, typename Allocator>
+template <typename ListIterator>
+void
+list<T, Allocator>::check_iterator(const ListIterator& _it) const
+{
+    _it.basic_check();
+    if (_it.get_from != this)
+    {
+        stl_panic(UNKNOWN_REGION_ITERATOR);
+    }
+}
+
+
+
+template <typename T, typename Allocator>
 list<T, Allocator>::iterator::iterator(
         const typename list::const_iterator& _const_iterator)
 {
@@ -550,29 +633,29 @@ list<T, Allocator>::iterator::iterator(list *_get_from,
 
 template <typename T, typename Allocator>
 void
-list<T, Allocator>::iterator::full_check()
+list<T, Allocator>::iterator::full_check() const
 {
     basic_check();
     if (get_from->nodes.find(node) == get_from->nodes.cend())
     {
         stl_panic(OLD_ITERATOR);
     }
-}
-
-template <typename T, typename Allocator>
-void
-list<T, Allocator>::iterator::basic_check()
-{
-    if (nullptr == get_from)
-    {
-        assert(nullptr == node);
-        stl_panic(UNINITIALIZED_ITERATOR);
-    }
 
     if (&(get_from->head) == node)
     {
         assert(nullptr != node);
         stl_panic(ITERATOR_OVERFLOW);
+    }
+}
+
+template <typename T, typename Allocator>
+void
+list<T, Allocator>::iterator::basic_check() const
+{
+    if (nullptr == get_from)
+    {
+        assert(nullptr == node);
+        stl_panic(UNINITIALIZED_ITERATOR);
     }
 }
 
@@ -649,29 +732,29 @@ list<T, Allocator>::const_iterator::const_iterator(
 
 template <typename T, typename Allocator>
 void
-list<T, Allocator>::const_iterator::full_check()
+list<T, Allocator>::const_iterator::full_check() const
 {
-    basic_check();
-    if (get_from->nodes.find(node) == get_from->nodes.cend())
+    basic_check();   
+    if ((get_from->nodes.find(node)) == (get_from->nodes.end()))
     {
         stl_panic(OLD_ITERATOR);
-    }
-}
-
-template <typename T, typename Allocator>
-void
-list<T, Allocator>::const_iterator::basic_check()
-{
-    if (nullptr == get_from)
-    {
-        assert(nullptr == node);
-        stl_panic(UNINITIALIZED_ITERATOR);
     }
 
     if (&(get_from->head) == node)
     {
         assert(nullptr != node);
         stl_panic(ITERATOR_OVERFLOW);
+    }
+}
+
+template <typename T, typename Allocator>
+void
+list<T, Allocator>::const_iterator::basic_check() const
+{
+    if (nullptr == get_from)
+    {
+        assert(nullptr == node);
+        stl_panic(UNINITIALIZED_ITERATOR);
     }
 }
 
