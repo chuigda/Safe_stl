@@ -146,6 +146,43 @@ ForwardIterator uninitialized_fill_n(ForwardIterator _first,
 }
 
 template <typename T>
+class saber_ptr
+{
+public:
+    saber_ptr() : saber_ptr(nullptr) {}
+
+    saber_ptr(T* _ptr) :
+        ptr(_ptr),
+        shared_count(new size_t(1))
+    {
+    }
+
+    saber_ptr(const saber_ptr& _another) :
+        ptr(_another.ptr),
+        shared_count(_another.shared_count)
+    {
+        (*shared_count)++;
+    }
+
+    ~saber_ptr()
+    {
+        --(*shared_count);
+        if (*shared_count == 0)
+        {
+            delete shared_count;
+            delete ptr;
+        }
+    }
+
+    inline T* get() {return ptr;}
+    inline const T* get() const {return ptr;}
+
+private:
+    T *ptr;
+    size_t *shared_count;
+};
+
+template <typename T>
 class default_allocator
 {
 public:

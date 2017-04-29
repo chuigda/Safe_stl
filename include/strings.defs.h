@@ -38,7 +38,7 @@
     "This iterator did not get initialized"
 
 #define OLD_ITERATOR\
-    "An manipulating operation has been performed on container object"
+    "A manipulating operation has been performed on container object"
 
 #define CONTAINER_COPY\
     "Copying container"
@@ -47,9 +47,15 @@
     "Accessing an invalid target"
 
 #define ITERATOR_OVERFLOW\
-    "This iterator is now pointing to an invalid position"
+    "This iterator is now pointing to an invalid position, for example, end()"
+
+#define DELETED_CONTAINER\
+    "Container has been destroyed but iterator left"
 
 #define UNKNOWN_REGION_ITERATOR\
     "This iterator does not come from this container"
+
+#define SPLICE_BETWEEN_UNEQUAL_ALLOC_CONTAINERS\
+    "Splicing between two containers which have unequal allocators"
 
 #endif // STRINGS_DEFS_H

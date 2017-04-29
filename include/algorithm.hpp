@@ -38,7 +38,10 @@ copy_if(InputIterator _first,
 
     while (_first != _last)
     {
-        if (_pred(*_first)) *_d_first++ = *_first;
+        if (_pred(*_first))
+        {
+            *_d_first++ = *_first;
+        }
         _first++;
     }
     return _d_first;

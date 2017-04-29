@@ -74,7 +74,17 @@ public:
     template <typename UnaryPredicate>
     void remove_if(UnaryPredicate _pred);
 
-    void unique();
+    template <typename BinaryPredicate>
+    void unique(BinaryPredicate _pred);
+
+    void splice(const_iterator pos, list& other);
+    void splice(const_iterator pos, list&& other);
+    void splice(const_iterator pos, list& other, const_iterator it);
+    void splice(const_iterator pos, list&& other, const_iterator it);
+    void splice(const_iterator pos, list& other,
+                const_iterator first, const_iterator last);
+    void splice(const_iterator pos, list&& other,
+                const_iterator first, const_iterator last);
 
     iterator begin() noexcept;
     iterator end() noexcept;
@@ -112,8 +122,12 @@ private:
         ~list_node() = default;
     };
 
+    void register_node(const list_node_base* _node);
+    void detach_node(const list_node_base* _node);
+    bool search_node(const list_node_base* _node) const;
+
     template <typename ListIterator>
-    void check_iterator(const ListIterator& _it) const;
+    void check_iterator(const ListIterator& _iter) const noexcept;
 
     using node_allocator_type =
         typename Allocator::template rebind<list_node>::other;
@@ -123,6 +137,7 @@ private:
     allocator_type alloc;
     node_allocator_type node_alloc;
 
+    saber_ptr<bool> validating_ptr;
     std::unordered_set<const list_node_base*> nodes;
 };
 
@@ -138,8 +153,9 @@ public:
     using reference         = typename list::reference;
     using const_reference   = typename list::const_reference;
 
-    iterator() = default;
-    iterator(const iterator&) = default;
+    iterator(void) = default;
+    iterator(const iterator& _another) = default;
+    // See C++ Defect Report #179
     iterator(const typename list::const_iterator& _const_iterator);
     ~iterator() = default;
 
@@ -156,11 +172,14 @@ public:
 
 private:
     iterator(list *_get_from, typename list::list_node_base *_node);
-    void full_check(void) const;
-    void basic_check(void) const;
+
+    void check_initialized(void) const noexcept;
+    void check_valid(void) const noexcept;
+    void check_dereferencable(void) const noexcept;
 
     list *get_from = nullptr;
     typename list::list_node_base *node = nullptr;
+    saber_ptr<bool> validating_ptr;
 };
 
 template <typename T, typename Allocator>
@@ -176,7 +195,7 @@ public:
     using const_reference   = typename list::const_reference;
 
     const_iterator() = default;
-    const_iterator(const const_iterator&) = default;
+    const_iterator(const const_iterator& _another) = default;
     // See C++ Defect Report #179
     const_iterator(const typename list::iterator& _mutable_iterator);
     ~const_iterator() = default;
@@ -192,17 +211,21 @@ public:
 
 private:
     const_iterator(const list *_get_from, const typename list::list_node_base *_node);
-    void full_check(void) const;
-    void basic_check(void) const;
+
+    void check_initialized(void) const noexcept;
+    void check_valid(void) const noexcept;
+    void check_dereferencable(void) const noexcept;
 
     const list *get_from = nullptr;
     const typename list::list_node_base *node = nullptr;
+    saber_ptr<bool> validating_ptr;
 };
 
 template <typename T, typename Allocator>
 list<T, Allocator>::list() :
     alloc(),
-    node_alloc()
+    node_alloc(),
+    validating_ptr(new bool(true))
 {
     head.prev = &head;
     head.next = &head;
@@ -249,6 +272,7 @@ template <typename T, typename Allocator>
 list<T, Allocator>::~list()
 {
     erase(cbegin(), cend());
+    *(validating_ptr.get()) = false;
 }
 
 template <typename T, typename Allocator>
@@ -271,7 +295,9 @@ template <typename T, typename Allocator>
 typename list<T, Allocator>::iterator
 list<T, Allocator>::insert(const_iterator _position, const value_type &_value)
 {
+    _position.check_valid();
     check_iterator(_position);
+
     iterator position(this, const_cast<list_node_base*>(_position.node));
 
     list_node *node =
@@ -284,7 +310,7 @@ list<T, Allocator>::insert(const_iterator _position, const value_type &_value)
     position.node->prev->next = node;
     position.node->prev = node;
 
-    nodes.insert(node);
+    register_node(node);
 
     return iterator(this, node);
 }
@@ -293,6 +319,7 @@ template <typename T, typename Allocator>
 typename list<T, Allocator>::iterator
 list<T, Allocator>::insert(const_iterator _position, value_type &&_value)
 {
+    _position.check_valid();
     check_iterator(_position);
     iterator position(this, const_cast<list_node_base*>(_position.node));
 
@@ -306,7 +333,7 @@ list<T, Allocator>::insert(const_iterator _position, value_type &&_value)
     position.node->prev->next = node;
     position.node->prev = node;
 
-    nodes.insert(node);
+    register_node(node);
 
     return iterator(this, node);
 }
@@ -316,7 +343,6 @@ typename list<T, Allocator>::iterator
 list<T, Allocator>::insert(const_iterator _position,
                            size_type _n, const value_type &_value)
 {
-    check_iterator(_position);
     for (size_type i = 0; i < _n; ++i)
     {
         insert(_position, _value);
@@ -363,6 +389,7 @@ template <typename T, typename Allocator>
 typename list<T, Allocator>::iterator
 list<T, Allocator>::erase(const_iterator _position)
 {
+    _position.check_dereferencable();
     check_iterator(_position);
     list_node_base *prev = _position.node->prev,
                    *next = _position.node->next;
@@ -375,7 +402,7 @@ list<T, Allocator>::erase(const_iterator _position)
     list_node *converted_node =
             reinterpret_cast<list_node*>(mutable_node);
 
-    nodes.erase(mutable_node);
+    detach_node(_position.node);
     destroy_at(converted_node);
     allocator_traits<node_allocator_type>::deallocate(node_alloc,
                                                       converted_node, 1);
@@ -386,7 +413,6 @@ template <typename T, typename Allocator>
 typename list<T, Allocator>::iterator
 list<T, Allocator>::erase(const_iterator _first, const_iterator _last)
 {
-    check_iterator(_last);
     for  (; _first != _last; _first = erase(_first));
     return iterator(this, const_cast<list_node_base*>(_last.node));
 }
@@ -444,9 +470,64 @@ list<T, Allocator>::remove_if(UnaryPredicate _pred)
 
 template <typename T, typename Allocator>
 void
-list<T, Allocator>::unique()
+list<T, Allocator>::splice(const_iterator _pos, list &_other)
 {
+    splice(_pos, _other, _other.begin(), _other.end());
+}
 
+template <typename T, typename Allocator>
+void
+list<T, Allocator>::splice(const_iterator _pos, list &_other,
+                           const_iterator _it)
+{
+    splice(_pos, _other, _it, _other.cend());
+}
+
+template <typename T, typename Allocator>
+void
+list<T, Allocator>::splice(const_iterator _pos, list &_other,
+                           const_iterator _first, const_iterator _last)
+{
+    // Fixme : This function contains lots of low-level operations,
+    //         making my implementation ugly.
+
+    _pos.check_valid();
+    check_iterator(_pos);
+    _first.check_valid();
+    _last.check_valid();
+    _other.check_iterator(_first);
+    _other.check_iterator(_last);
+
+    if (alloc == _other.alloc)
+    {
+        insert(_pos, _first, _last);
+        _other.erase(_first, _last);
+// Fixme : the following comments is a failed algorithm.
+//        iterator pos(_pos);
+//        iterator first(_first), last(_last);
+
+//        for (const list_node_base *node_it = _first.node;
+//             node_it != _last.node;
+//             node_it = node_it->next)
+//        {
+//            register_node(node_it);
+//            _other.detach_node(node_it);
+//        }
+
+//        last.node->prev->next = pos.node;
+//        first.node->next->prev = last.node;
+//        pos.node->prev->next = first.node;
+//        list_node_base *s = pos.node->prev;
+//        pos.node->prev = last.node->prev;
+//        last.node->prev = first.node->prev;
+//        first.node->prev = s;
+    }
+    else
+    {
+        stl_warning(SPLICE_BETWEEN_UNEQUAL_ALLOC_CONTAINERS);
+        insert(_pos, _first, _last);
+        _other.erase(_first, _last);
+    }
 }
 
 template <typename T, typename Allocator>
@@ -534,12 +615,32 @@ list<T, Allocator>::crend() const noexcept
 }
 
 template <typename T, typename Allocator>
+void
+list<T, Allocator>::register_node(const list_node_base *_node)
+{
+    nodes.insert(_node);
+}
+
+template <typename T, typename Allocator>
+void
+list<T, Allocator>::detach_node(const list_node_base *_node)
+{
+    nodes.erase(_node);
+}
+
+template <typename T, typename Allocator>
+bool
+list<T, Allocator>::search_node(const list_node_base *_node) const
+{
+    return (nodes.find(_node) != nodes.end());
+}
+
+template <typename T, typename Allocator>
 template <typename ListIterator>
 void
-list<T, Allocator>::check_iterator(const ListIterator& _it) const
+list<T, Allocator>::check_iterator(const ListIterator& _iter) const noexcept
 {
-    _it.basic_check();
-    if (_it.get_from != this)
+    if (_iter.get_from != this)
     {
         stl_panic(UNKNOWN_REGION_ITERATOR);
     }
@@ -548,11 +649,12 @@ list<T, Allocator>::check_iterator(const ListIterator& _it) const
 
 
 template <typename T, typename Allocator>
-list<T, Allocator>::iterator::iterator(
-        const typename list::const_iterator& _const_iterator)
+list<T, Allocator>::iterator::iterator
+(const typename list::const_iterator& _const_iterator) :
+    get_from(const_cast<list*>(_const_iterator.get_from)),
+    node(const_cast<typename list::list_node_base*>(_const_iterator.node)),
+    validating_ptr(_const_iterator.validating_ptr)
 {
-    get_from = const_cast<list*>(_const_iterator.get_from);
-    node = const_cast<typename list::list_node_base*>(_const_iterator.node);
 }
 
 template <typename T, typename Allocator>
@@ -573,7 +675,7 @@ template <typename T, typename Allocator>
 typename list<T, Allocator>::iterator::reference
 list<T, Allocator>::iterator::operator*()
 {
-    full_check();
+    check_dereferencable();
     return (reinterpret_cast<typename list::list_node*>(node))->value;
 }
 
@@ -581,7 +683,7 @@ template <typename T, typename Allocator>
 typename list<T, Allocator>::iterator::const_reference
 list<T, Allocator>::iterator::operator*() const
 {
-    full_check();
+    check_dereferencable();
     return (reinterpret_cast<const typename list::list_node*>(node))->value;
 }
 
@@ -589,7 +691,6 @@ template <typename T, typename Allocator>
 typename list<T, Allocator>::iterator&
 list<T, Allocator>::iterator::operator++()
 {
-    // basic_check();
     node = node->next;
     return *this;
 }
@@ -598,7 +699,6 @@ template <typename T, typename Allocator>
 typename list<T, Allocator>::iterator&
 list<T, Allocator>::iterator::operator--()
 {
-    // basic_check();
     node = node->prev;
     return *this;
 }
@@ -607,7 +707,6 @@ template <typename T, typename Allocator>
 typename list<T, Allocator>::iterator
 list<T, Allocator>::iterator::operator++(int)
 {
-    // basic_check();
     iterator ret(*this);
     node = node->next;
     return ret;
@@ -617,7 +716,6 @@ template <typename T, typename Allocator>
 typename list<T, Allocator>::iterator
 list<T, Allocator>::iterator::operator--(int)
 {
-    // basic_check();
     iterator ret(*this);
     node = node->prev;
     return ret;
@@ -627,44 +725,58 @@ template <typename T, typename Allocator>
 list<T, Allocator>::iterator::iterator(list *_get_from,
                                        typename list::list_node_base *_node) :
     get_from(_get_from),
-    node(_node)
+    node(_node),
+    validating_ptr(_get_from->validating_ptr)
 {
 }
 
 template <typename T, typename Allocator>
 void
-list<T, Allocator>::iterator::full_check() const
+list<T, Allocator>::iterator::check_initialized() const noexcept
 {
-    basic_check();
-    if (get_from->nodes.find(node) == get_from->nodes.cend())
+    if (get_from == nullptr)
     {
-        stl_panic(OLD_ITERATOR);
-    }
-
-    if (&(get_from->head) == node)
-    {
-        assert(nullptr != node);
-        stl_panic(ITERATOR_OVERFLOW);
-    }
-}
-
-template <typename T, typename Allocator>
-void
-list<T, Allocator>::iterator::basic_check() const
-{
-    if (nullptr == get_from)
-    {
-        assert(nullptr == node);
+        assert(node == nullptr);
+        assert(validating_ptr.get() == nullptr);
         stl_panic(UNINITIALIZED_ITERATOR);
     }
 }
 
 template <typename T, typename Allocator>
-list<T, Allocator>::const_iterator::const_iterator(
-        const typename list::iterator& _mutable_iterator)
+void
+list<T, Allocator>::iterator::check_valid() const noexcept
 {
-    get_from = _mutable_iterator.get_from;
-    node = _mutable_iterator.node;
+    if (*(validating_ptr.get()) == false)
+    {
+        stl_panic(DELETED_CONTAINER);
+    }
+
+    if (get_from->search_node(node));
+    else
+    {
+        stl_panic(OLD_ITERATOR);
+    }
+}
+
+template <typename T, typename Allocator>
+void
+list<T, Allocator>::iterator::check_dereferencable() const noexcept
+{
+    if (node == &(get_from->head))
+    {
+        stl_panic(ITERATOR_OVERFLOW);
+    }
+}
+
+
+
+template <typename T, typename Allocator>
+list<T, Allocator>::const_iterator::const_iterator(
+        const typename list::iterator& _mutable_iterator) :
+    get_from(_mutable_iterator.get_from),
+    node(_mutable_iterator.node),
+    validating_ptr(_mutable_iterator.validating_ptr)
+{
 }
 
 template <typename T, typename Allocator>
@@ -684,10 +796,18 @@ list<T, Allocator>::const_iterator::operator!= (
 }
 
 template <typename T, typename Allocator>
+typename list<T, Allocator>::const_iterator::const_reference
+list<T, Allocator>::const_iterator::operator*() const
+{
+    return reinterpret_cast<const typename list::list_node*>(node)->value;
+}
+
+template <typename T, typename Allocator>
 typename list<T, Allocator>::const_iterator&
 list<T, Allocator>::const_iterator::operator++()
 {
-    basic_check();
+    check_initialized();
+    check_valid();
     node = node->next;
     return *this;
 }
@@ -696,7 +816,8 @@ template <typename T, typename Allocator>
 typename list<T, Allocator>::const_iterator&
 list<T, Allocator>::const_iterator::operator--()
 {
-    basic_check();
+    check_initialized();
+    check_valid();
     node = node->prev;
     return *this;
 }
@@ -705,7 +826,8 @@ template <typename T, typename Allocator>
 typename list<T, Allocator>::const_iterator
 list<T, Allocator>::const_iterator::operator++(int)
 {
-    basic_check();
+    check_initialized();
+    check_valid();
     const_iterator ret(*this);
     node = node->next;
     return ret;
@@ -715,7 +837,8 @@ template <typename T, typename Allocator>
 typename list<T, Allocator>::const_iterator
 list<T, Allocator>::const_iterator::operator--(int)
 {
-    basic_check();
+    check_initialized();
+    check_valid();
     const_iterator ret(*this);
     node = node->prev;
     return ret;
@@ -726,35 +849,48 @@ list<T, Allocator>::const_iterator::const_iterator(
         const list *_get_from,
         const typename list::list_node_base *_node) :
     get_from(_get_from),
-    node(_node)
+    node(_node),
+    validating_ptr(_get_from->validating_ptr)
 {
 }
 
 template <typename T, typename Allocator>
 void
-list<T, Allocator>::const_iterator::full_check() const
+list<T, Allocator>::const_iterator::check_initialized() const noexcept
 {
-    basic_check();   
-    if ((get_from->nodes.find(node)) == (get_from->nodes.end()))
+    if (get_from == nullptr)
+    {
+        assert(node == nullptr);
+        assert(validating_ptr.get() == nullptr);
+        stl_panic(UNINITIALIZED_ITERATOR);
+    }
+}
+
+template <typename T, typename Allocator>
+void
+list<T, Allocator>::const_iterator::check_valid() const noexcept
+{
+    check_initialized();
+    if (*(validating_ptr.get()) == false)
+    {
+        stl_panic(DELETED_CONTAINER);
+    }
+
+    if (get_from->search_node(node));
+    else
     {
         stl_panic(OLD_ITERATOR);
     }
-
-    if (&(get_from->head) == node)
-    {
-        assert(nullptr != node);
-        stl_panic(ITERATOR_OVERFLOW);
-    }
 }
 
 template <typename T, typename Allocator>
 void
-list<T, Allocator>::const_iterator::basic_check() const
+list<T, Allocator>::const_iterator::check_dereferencable() const noexcept
 {
-    if (nullptr == get_from)
+    check_valid();
+    if (node == &(get_from->head))
     {
-        assert(nullptr == node);
-        stl_panic(UNINITIALIZED_ITERATOR);
+        stl_panic(ITERATOR_OVERFLOW);
     }
 }
 
