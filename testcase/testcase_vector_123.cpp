@@ -2,9 +2,12 @@
 #include "tracer.hpp"
 #include "vector.hpp"
 
+using std::printf;
+using std::putchar;
+
 void testcase_vector_1()
 {
-    std::printf("Running testcase1\n\n");
+    printf("Running testcase1\n\n");
 
     saber::vector<int> vec;
     vec.push_back(1);
@@ -19,23 +22,23 @@ void testcase_vector_1()
 
     for (size_t i = 0; i < another.size(); i++)
     {
-        std::printf("%d ", another[i]);
+        printf("%d ", another[i]);
     }
     std::putchar('\n');
 
     for (size_t i = 0; i < that.size(); i++)
     {
-        std::printf("%d ", another[i]);
+        printf("%d ", another[i]);
     }
 
     std::putchar('\n');
 
-    std::printf("\n\n");
+    printf("\n\n");
 }
 
 void testcase_vector_2()
 {
-    std::printf("Running testcase2\n\n");
+    printf("Running testcase2\n\n");
 
     saber::vector<Trace> vec;
     vec.push_back(Trace());
@@ -46,12 +49,12 @@ void testcase_vector_2()
 
     that = another;
 
-    std::printf("\n\n");
+    printf("\n\n");
 }
 
 void testcase_vector_3()
 {
-    std::printf("Running testcase3\n\n");
+    printf("Running testcase3\n\n");
 
     saber::vector<float> vec;
     vec.push_back(3);
@@ -59,15 +62,15 @@ void testcase_vector_3()
 
     for (auto it = vec.cbegin(); it != vec.cend(); ++it)
     {
-        std::printf("%f ", *it);
+        printf("%f ", *it);
     }
     putchar('\n');
 
     for (const auto &it : vec)
     {
-        std::printf("%f ", it);
+        printf("%f ", it);
     }
     putchar('\n');
 
-    std::printf("\n\n");
+    printf("\n\n");
 }

@@ -132,8 +132,8 @@ private:
     T *array;
     size_type capacity_val;
     size_type size_val;
-
     size_t update_count = 0;
+    saber_ptr<bool> validating_ptr;
 };
 
 template <typename T, typename Allocator>
@@ -178,7 +178,8 @@ private:
     iterator(vector* _from, value_type* _ptr) :
         get_from(_from),
         ptr(_ptr),
-        update_count(_from->update_count)
+        update_count(_from->update_count),
+        validating_ptr(_from->validating_ptr)
     {}
 
     void version_check() const;
@@ -187,6 +188,7 @@ private:
     vector *get_from;
     value_type *ptr;
     size_t update_count;
+    saber_ptr<bool> validating_ptr;
 };
 
 template <typename T, typename Allocator>
@@ -230,7 +232,8 @@ private:
     const_iterator(const vector* _from, const value_type* _ptr) :
         get_from(_from),
         ptr(_ptr),
-        update_count(_from->update_count)
+        update_count(_from->update_count),
+        validating_ptr(_from->validating_ptr)
     {}
 
     void version_check() const;
@@ -240,11 +243,13 @@ private:
     const vector *get_from;
     const value_type *ptr;
     size_t update_count;
+    saber_ptr<bool> validating_ptr;
 };
 
 template <typename T, typename Allocator>
 vector<T, Allocator>::vector() :
-    alloc()
+    alloc(),
+    validating_ptr(new bool(true))
 {
     array = allocator_traits<Allocator>::allocate(alloc, 4);
     capacity_val = 4;
@@ -262,7 +267,8 @@ vector<T, Allocator>::vector(const vector &_another) :
 template <typename T, typename Allocator>
 vector<T, Allocator>::vector(const vector &_another,
                              const allocator_type &_allocator) :
-    alloc(_allocator)
+    alloc(_allocator),
+    validating_ptr(new bool(true))
 {
     stl_warning(CONTAINER_COPY);
     array = allocator_traits<Allocator>::allocate(alloc, _another.size());
@@ -276,7 +282,8 @@ vector<T, Allocator>::vector(const vector &_another,
 template <typename T, typename Allocator>
 vector<T, Allocator>::vector(size_type _n,
                              const allocator_type &_allocator) :
-    alloc(_allocator)
+    alloc(_allocator),
+    validating_ptr(new bool(true))
 {
     array = allocator_traits<Allocator>::allocate(alloc, _n);
     capacity_val = _n;
@@ -288,7 +295,8 @@ template <typename T, typename Allocator>
 vector<T, Allocator>::vector(size_type _n,
                              const value_type &_value,
                              const allocator_type &_allocator) :
-    alloc(_allocator)
+    alloc(_allocator),
+    validating_ptr(new bool(true))
 {
     array = allocator_traits<Allocator>::allocate(alloc, _n);
     capacity_val = _n;
@@ -309,7 +317,8 @@ template <typename InputIterator>
 vector<T, Allocator>::vector(InputIterator _begin,
                              InputIterator _end,
                              const allocator_type& _allocator) :
-    alloc(_allocator)
+    alloc(_allocator),
+    validating_ptr(new bool(true))
 {
     static_assert(traits::is_input_iterator<InputIterator>::value,
                   TEMPLATE_ARG_NOT_INPUT_ITERATOR);
@@ -326,7 +335,8 @@ vector<T, Allocator>::vector(InputIterator _begin,
 
 template <typename T, typename Allocator>
 vector<T, Allocator>::vector(vector &&_another) :
-    alloc(std::move(_another.alloc))
+    alloc(std::move(_another.alloc)),
+    validating_ptr(new bool(true))
 {
     array = _another.array;
     size_val = _another.size();
@@ -340,7 +350,8 @@ vector<T, Allocator>::vector(vector &&_another) :
 template <typename T, typename Allocator>
 vector<T, Allocator>::vector(vector &&_another,
                              const allocator_type &_allocator) :
-    alloc(_allocator)
+    alloc(_allocator),
+    validating_ptr(new bool(true))
 {
     array = _another.array;
     _another.array = nullptr;
@@ -358,6 +369,8 @@ vector<T, Allocator>::~vector()
 {
     clear();
     allocator_traits<Allocator>::deallocate(alloc, array, capacity());
+
+    *(validating_ptr.get()) = false;
 }
 
 
@@ -1195,6 +1208,11 @@ template<typename T, typename Allocator>
 void
 vector<T, Allocator>::iterator::version_check() const
 {
+    if (*(validating_ptr.get()) == false)
+    {
+        stl_panic(DELETED_CONTAINER);
+    }
+
     if (update_count != get_from->update_count)
     {
         stl_panic(OLD_ITERATOR);
@@ -1216,6 +1234,11 @@ template<typename T, typename Allocator>
 void
 vector<T, Allocator>::const_iterator::version_check() const
 {
+    if (*(validating_ptr.get()) == false)
+    {
+        stl_panic(DELETED_CONTAINER);
+    }
+
     if (update_count != get_from->update_count)
     {
         stl_panic(OLD_ITERATOR);

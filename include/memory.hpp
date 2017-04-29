@@ -1,4 +1,8 @@
-﻿#ifndef MEMORY_HPP
+﻿#ifdef _MSC_VER
+#pragma once
+#endif
+
+#ifndef MEMORY_HPP
 #define MEMORY_HPP
 
 #include "safe_stl_general.hpp"

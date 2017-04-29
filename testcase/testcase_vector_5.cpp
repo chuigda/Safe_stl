@@ -2,9 +2,12 @@
 #include "vector.hpp"
 #include <algorithm>
 
+using std::printf;
+using std::putchar;
+
 void testcase_vector_5()
 {
-    std::printf("Running testcase5\n\n");
+    printf("Running testcase5\n\n");
 
     saber::vector<int> vec {2, 1, 4, 7, 4, 8, 3, 6, 4, 7};
 
@@ -14,17 +17,17 @@ void testcase_vector_5()
          it != vec.end();
          ++it)
     {
-        std::printf("%d ", *it);
+        printf("%d ", *it);
     }
-    std::putchar('\n');
+    putchar('\n');
 
     for (auto it = vec.rbegin();
          it != vec.rend();
          ++it)
     {
-        std::printf("%d ", *it);
+        printf("%d ", *it);
     }
-    std::putchar('\n');
+    putchar('\n');
 
-    std::printf("\n\n");
+    printf("\n\n");
 }

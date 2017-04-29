@@ -2,12 +2,15 @@
 #include "vector.hpp"
 #include <vector>
 
+using std::printf;
+using std::putchar;
+
 void testcase_vector_7()
 {
-    std::printf("Running testcase7\n\n");
+    printf("Running testcase7\n\n");
 
     {
-        std::printf("Behaviour of std::vector\n");
+        printf("Behaviour of std::vector\n");
         std::vector<int> vec;
         vec.reserve(16);
 
@@ -21,14 +24,14 @@ void testcase_vector_7()
 
         for (auto it = begin; it != end; ++it)
         {
-            std::printf("%d ", *it);
+            printf("%d ", *it);
         }
 
         putchar('\n');
     }
 
     {
-        std::printf("Behaviour of saber::vector\n");
+        printf("Behaviour of saber::vector\n");
         saber::vector<int> vec;
         vec.reserve(16);
 
@@ -42,11 +45,11 @@ void testcase_vector_7()
 
         for (auto it = begin; it != end; ++it)
         {
-            std::printf("%d ", *it);
+            printf("%d ", *it);
         }
 
         putchar('\n');
     }
 
-    std::printf("\n\n");
+    printf("\n\n");
 }

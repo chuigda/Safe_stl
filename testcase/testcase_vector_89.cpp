@@ -1,10 +1,14 @@
-﻿#include "vector.hpp"
+﻿#include <cstdio>
+#include "vector.hpp"
 #include <vector>
+
+using std::printf;
+using std::putchar;
 
 void testcase_vector_8()
 {
-    std::printf("Running testcase8\n\n");
-    std::printf("behaviour of saber::vector\n\n");
+    printf("Running testcase8\n\n");
+    printf("behaviour of saber::vector\n\n");
     {
         saber::vector<int> vec {2, 3, 5, 7};
         int new_element = 9;
@@ -14,12 +18,12 @@ void testcase_vector_8()
 
         for (auto it = vec.cbegin(); it != vec.cend(); ++it)
         {
-            std::printf("%d ", *it);
+            printf("%d ", *it);
         }
         putchar('\n');
     }
 
-    std::printf("behaviour of std::vector\n\n");
+    printf("behaviour of std::vector\n\n");
     {
         std::vector<int> vec {2, 3, 5, 7};
 
@@ -28,7 +32,7 @@ void testcase_vector_8()
 
         for (auto it = vec.cbegin(); it != vec.cend(); ++it)
         {
-            std::printf("%d ", *it);
+            printf("%d ", *it);
         }
         putchar('\n');
     }
@@ -36,30 +40,28 @@ void testcase_vector_8()
 
 void testcase_vector_9()
 {
-    std::printf("Running testcase8\n\n");
+    printf("Running testcase9\n\n");
 
-    std::printf("behaviour of saber::vector\n\n");
+    printf("behaviour of saber::vector\n\n");
     {
-        std::printf("Running testcase9\n\n");
         saber::vector<int> vec {2, 1, 4, 7, 4, 8, 3, 6, 4, 7};
         vec.erase(vec.cbegin() + 2, vec.cbegin() + 5);
 
         for (auto it = vec.cbegin(); it != vec.cend(); ++it)
         {
-            std::printf("%d ", *it);
+            printf("%d ", *it);
         }
         putchar('\n');
     }
 
-    std::printf("behaviour of std::vector\n\n");
+    printf("behaviour of std::vector\n\n");
     {
-        std::printf("Running testcase9\n\n");
         std::vector<int> vec {2, 1, 4, 7, 4, 8, 3, 6, 4, 7};
         vec.erase(vec.cbegin() + 2, vec.cbegin() + 5);
 
         for (auto it = vec.cbegin(); it != vec.cend(); ++it)
         {
-            std::printf("%d ", *it);
+            printf("%d ", *it);
         }
         putchar('\n');
     }

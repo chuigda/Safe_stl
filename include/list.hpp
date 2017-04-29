@@ -1,4 +1,8 @@
-﻿#ifndef LIST_HPP
+﻿#ifdef _MSC_VER
+#pragma once
+#endif
+
+#ifndef LIST_HPP
 #define LIST_HPP
 
 #include "algorithm.hpp"

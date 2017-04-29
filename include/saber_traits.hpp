@@ -1,4 +1,8 @@
-﻿#ifndef SABER_TRAITS_HPP
+﻿#ifdef _MSC_VER
+#pragma once
+#endif
+
+#ifndef SABER_TRAITS_HPP
 #define SABER_TRAITS_HPP
 
 #include <type_traits>

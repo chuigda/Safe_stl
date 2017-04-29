@@ -1,4 +1,8 @@
-﻿#ifndef ITERATOR_HPP
+﻿#ifdef _MSC_VER
+#pragma once
+#endif
+
+#ifndef ITERATOR_HPP
 #define ITERATOR_HPP
 
 #include "safe_stl_general.hpp"

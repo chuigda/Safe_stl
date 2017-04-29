@@ -4,9 +4,12 @@
 #include <memory>
 #include <vector>
 
+using std::printf;
+using std::putchar;
+
 void testcase_vector_4()
 {
-    std::printf("Running testcase4\n\n");
+    printf("Running testcase4\n\n");
 
     {
         saber::vector<int, std::allocator<int>> vec;
@@ -20,7 +23,7 @@ void testcase_vector_4()
 
         for (size_t i = 0; i < another.size(); i++)
         {
-            std::printf("%d ", another[i]);
+            printf("%d ", another[i]);
         }
         putchar('\n');
     }
@@ -37,7 +40,7 @@ void testcase_vector_4()
 
         for (size_t i = 0; i < another.size(); i++)
         {
-            std::printf("%d ", another[i]);
+            printf("%d ", another[i]);
         }
         putchar('\n');
     }
@@ -53,5 +56,5 @@ void testcase_vector_4()
         that = another;
     }
 
-    std::printf("\n\n");
+    printf("\n\n");
 }
