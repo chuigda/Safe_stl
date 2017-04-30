@@ -181,10 +181,22 @@ public:
     inline T* get() {return ptr;}
     inline const T* get() const {return ptr;}
 
+    void swap(saber_ptr& _another) noexcept
+    {
+        saber::swap(ptr, _another.ptr);
+        saber::swap(shared_count, _another.shared_count);
+    }
+
 private:
     T *ptr;
     size_t *shared_count;
 };
+
+template <typename T>
+void swap(saber_ptr<T>& _a, saber_ptr<T>& _b)
+{
+    _a.swap(_b);
+}
 
 template <typename T>
 class default_allocator
@@ -274,7 +286,6 @@ default_allocator<T>::operator=(const default_allocator &) noexcept
 {
     return *this;
 }
-
 
 } // namespace saber
 

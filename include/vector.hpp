@@ -1,4 +1,8 @@
-﻿#ifndef VECTOR_HPP
+﻿#ifdef _MSC_VER
+#pragma once
+#endif
+
+#ifndef VECTOR_HPP
 #define VECTOR_HPP
 
 #include "iterator.hpp"
@@ -33,13 +37,13 @@ public:
     using reverse_iterator       = saber::reverse_iterator<iterator>;
     using const_reverse_iterator = saber::reverse_iterator<const_iterator>;
 
-    vector();
+    explicit vector();
     vector(const vector& _another);
     vector(const vector& _another, const allocator_type& _allocator);
-    vector(size_type _n, const allocator_type& _allocator);
-    vector(size_type _n,
-           const value_type& _value,
-           const allocator_type& _allocator);
+    explicit vector(size_type _n, const allocator_type& _allocator);
+    explicit vector(size_type _n,
+                    const value_type& _value,
+                    const allocator_type& _allocator);
     vector(vector&& _another);
     vector(vector&& _another, const allocator_type& _allocator);
 
@@ -94,6 +98,8 @@ public:
     reverse_iterator erase(const_reverse_iterator _position);
     reverse_iterator erase(const_reverse_iterator _begin,
                            const_reverse_iterator _end);
+
+    void swap(vector& _another) noexcept;
 
     reference at(size_type _index);
     reference operator[] (size_type _index);
@@ -343,7 +349,7 @@ vector<T, Allocator>::vector(vector &&_another) :
     capacity_val = _another.capacity();
 
     _another.array = nullptr;
-    _another.capacity = _another.size_val = 0;
+    _another.capacity_val = _another.size_val = 0;
     update_vector();
 }
 
@@ -416,6 +422,8 @@ vector<T, Allocator>::operator= (vector&& _another)
     _another.array = nullptr;
     _another.size_val = 0;
     _another.capacity_val = 0;
+
+    return *this;
 }
 
 template <typename T, typename Allocator>
@@ -721,6 +729,17 @@ vector<T, Allocator>::erase(const_reverse_iterator _first,
     check_iterator(_last.base());
 
     return reverse_iterator(erase(_last.base(), _first.base()));
+}
+
+template <typename T, typename Allocator>
+void
+vector<T, Allocator>::swap(vector& _another) noexcept
+{
+    saber::swap(array, _another.array);
+    saber::swap(alloc, _another.alloc);
+    saber::swap(capacity_val, _another.capacity_val);
+    saber::swap(update_count, _another.update_count);
+    saber::swap(validating_ptr, _another.validating_ptr);
 }
 
 template <typename T, typename Allocator>
@@ -1204,7 +1223,7 @@ vector<T, Allocator>::const_iterator::operator!=
     return ! operator==(_another);
 }
 
-template<typename T, typename Allocator>
+template <typename T, typename Allocator>
 void
 vector<T, Allocator>::iterator::version_check() const
 {
@@ -1219,7 +1238,7 @@ vector<T, Allocator>::iterator::version_check() const
     }
 }
 
-template<typename T, typename Allocator>
+template <typename T, typename Allocator>
 void
 vector<T, Allocator>::iterator::boundary_check(difference_type _offset) const
 {
@@ -1230,7 +1249,7 @@ vector<T, Allocator>::iterator::boundary_check(difference_type _offset) const
     }
 }
 
-template<typename T, typename Allocator>
+template <typename T, typename Allocator>
 void
 vector<T, Allocator>::const_iterator::version_check() const
 {
@@ -1245,7 +1264,7 @@ vector<T, Allocator>::const_iterator::version_check() const
     }
 }
 
-template<typename T, typename Allocator>
+template <typename T, typename Allocator>
 void
 vector<T, Allocator>::const_iterator::boundary_check(difference_type _offset) const
 {
@@ -1254,6 +1273,13 @@ vector<T, Allocator>::const_iterator::boundary_check(difference_type _offset) co
     {
         stl_panic(ITERATOR_OVERFLOW);
     }
+}
+
+template <typename T, typename Allocator>
+void
+swap(vector<T, Allocator> &_a, vector<T, Allocator> &_b)
+{
+    _a.swap(_b);
 }
 
 } // namespace saber

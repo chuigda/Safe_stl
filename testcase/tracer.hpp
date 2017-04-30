@@ -20,6 +20,15 @@ public:
         size = 4;
     }
 
+    Trace(Trace&& _another)
+    {
+        std::printf("Trace(Trace&&) at %p\n", this);
+        m_dynamic = _another.m_dynamic;
+        size = _another.size;
+        _another.m_dynamic = nullptr;
+        _another.size = 0;
+    }
+
     ~Trace()
     {
         std::printf("~Trace() at %p\n", this);

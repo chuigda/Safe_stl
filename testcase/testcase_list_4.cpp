@@ -11,8 +11,10 @@ void testcase_list_4()
         std::list<int> l2 {9, 8, 7, 6};
         std::list<int> l3 {5, 5, 5, 5};
 
-        l1.splice(l1.cbegin(), l2);
+        l1.splice(l1.cend(), l2);
         l1.splice(l1.cend(), l3, ++(l3.cbegin()), --(l3.cend()));
+
+        std::swap(l1, l2);
 
         for (auto& x : l1)
         {
@@ -38,8 +40,10 @@ void testcase_list_4()
         saber::list<int> l2 {9, 8, 7, 6};
         saber::list<int> l3 {5, 5, 5, 5};
 
-        l1.splice(l1.cbegin(), l2);
+        l1.splice(l1.cend(), l2);
         l1.splice(l1.cend(), l3, ++(l3.cbegin()), --(l3.cend()));
+
+        saber::swap(l1, l2);
 
         for (auto& x : l1)
         {

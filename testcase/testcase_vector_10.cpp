@@ -10,7 +10,6 @@ using std::putchar;
 void testcase_vector_10()
 {
     printf("Running testcase10\n\n");
-
     {
         saber::vector<int> *vec = new saber::vector<int> {1, 2, 3, 4, 5};
 
@@ -23,4 +22,5 @@ void testcase_vector_10()
         }
         putchar('\n');
     }
+    printf("\n\n");
 }

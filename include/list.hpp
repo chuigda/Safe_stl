@@ -90,6 +90,8 @@ public:
     void splice(const_iterator pos, list&& other,
                 const_iterator first, const_iterator last);
 
+    void swap(list& _another) noexcept;
+
     iterator begin() noexcept;
     iterator end() noexcept;
 
@@ -136,7 +138,7 @@ private:
     using node_allocator_type =
         typename Allocator::template rebind<list_node>::other;
 
-    list_node_base head;
+    list_node_base *head;
 
     allocator_type alloc;
     node_allocator_type node_alloc;
@@ -227,25 +229,28 @@ private:
 
 template <typename T, typename Allocator>
 list<T, Allocator>::list() :
+    head(new list_node_base()),
     alloc(),
     node_alloc(),
     validating_ptr(new bool(true))
 {
-    head.prev = &head;
-    head.next = &head;
+    head->prev = head;
+    head->next = head;
 
-    nodes.insert(&head);
+    nodes.insert(head);
 }
 
 template <typename T, typename Allocator>
 list<T, Allocator>::list(const Allocator &_alloc) :
+    head(new list_node_base()),
     alloc(_alloc),
-    node_alloc(alloc)
+    node_alloc(alloc),
+    validating_ptr(new bool(true))
 {
-    head.prev = &head;
-    head.next = &head;
+    head->prev = head;
+    head->next = head;
 
-    nodes.insert(&head);
+    nodes.insert(head);
 }
 
 template <typename T, typename Allocator>
@@ -276,6 +281,7 @@ template <typename T, typename Allocator>
 list<T, Allocator>::~list()
 {
     erase(cbegin(), cend());
+    delete head;
     *(validating_ptr.get()) = false;
 }
 
@@ -292,7 +298,7 @@ template <typename T, typename Allocator>
 bool
 list<T, Allocator>::empty() const
 {
-    return (head.next == head);
+    return (head->next == head);
 }
 
 template <typename T, typename Allocator>
@@ -535,31 +541,41 @@ list<T, Allocator>::splice(const_iterator _pos, list &_other,
 }
 
 template <typename T, typename Allocator>
+void
+list<T, Allocator>::swap(list &_another) noexcept
+{
+    saber::swap(head, _another.head);
+    saber::swap(alloc, _another.alloc);
+    saber::swap(node_alloc, _another.node_alloc);
+    saber::swap(nodes, _another.nodes);
+}
+
+template <typename T, typename Allocator>
 typename list<T, Allocator>::iterator
 list<T, Allocator>::begin() noexcept
 {
-    return iterator(this, head.next);
+    return iterator(this, head->next);
 }
 
 template <typename T, typename Allocator>
 typename list<T, Allocator>::iterator
 list<T, Allocator>::end() noexcept
 {
-    return iterator(this, &head);
+    return iterator(this, head);
 }
 
 template <typename T, typename Allocator>
 typename list<T, Allocator>::const_iterator
 list<T, Allocator>::begin() const noexcept
 {
-    return const_iterator(this, head.next);
+    return const_iterator(this, head->next);
 }
 
 template <typename T, typename Allocator>
 typename list<T, Allocator>::const_iterator
 list<T, Allocator>::end() const noexcept
 {
-    return const_iterator(this, &head);
+    return const_iterator(this, head);
 }
 
 template <typename T, typename Allocator>
@@ -766,7 +782,7 @@ template <typename T, typename Allocator>
 void
 list<T, Allocator>::iterator::check_dereferencable() const noexcept
 {
-    if (node == &(get_from->head))
+    if (node == get_from->head)
     {
         stl_panic(ITERATOR_OVERFLOW);
     }
@@ -892,10 +908,17 @@ void
 list<T, Allocator>::const_iterator::check_dereferencable() const noexcept
 {
     check_valid();
-    if (node == &(get_from->head))
+    if (node == get_from->head)
     {
         stl_panic(ITERATOR_OVERFLOW);
     }
+}
+
+template <typename T, typename Allocator>
+void
+swap(list<T, Allocator>& _a, list<T, Allocator>& _b)
+{
+    _a.swap(_b);
 }
 
 } // namespace saber

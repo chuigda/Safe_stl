@@ -25,6 +25,11 @@ void testcase_list_1()
             printf("%d ", *it);
         }
         putchar('\n');
+        for (auto it = l.rbegin(); it != l.rend(); ++it)
+        {
+            printf("%d ", *it);
+        }
+        putchar('\n');
     }
 
     printf("Behaviour of saber::list:\n");
@@ -40,6 +45,11 @@ void testcase_list_1()
 
         l.erase(operation_place_2, operation_place);
         for (auto it = l.begin(); it != l.end(); ++it)
+        {
+            printf("%d ", *it);
+        }
+        putchar('\n');
+        for (auto it = l.rbegin(); it != l.rend(); ++it)
         {
             printf("%d ", *it);
         }
