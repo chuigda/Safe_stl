@@ -6,7 +6,9 @@ using std::putchar;
 
 void testcase_list_4()
 {
+    printf("Running testcase 3:\n");
     {
+        printf("Behaviour of std::list\n");
         std::list<int> l1 {1, 2, 3, 4};
         std::list<int> l2 {9, 8, 7, 6};
         std::list<int> l3 {5, 5, 5, 5};
@@ -36,6 +38,7 @@ void testcase_list_4()
     }
 
     {
+        printf("Behaviour pf saber::list\n");
         saber::list<int> l1 {1, 2, 3, 4};
         saber::list<int> l2 {9, 8, 7, 6};
         saber::list<int> l3 {5, 5, 5, 5};

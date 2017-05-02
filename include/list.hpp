@@ -57,11 +57,11 @@ public:
                     initializer_list<value_type> _ilist);
 
     template <typename... Args>
-    iterator emplace(const_iterator _position, Args&& ...args);
+    iterator emplace(const_iterator _position, Args&& ..._args);
     template <typename... Args>
-    iterator emplace_back(Args&& ...args);
+    iterator emplace_back(Args&& ..._args);
     template <typename... Args>
-    iterator emplace_front(Args&& ...args);
+    iterator emplace_front(Args&& ..._args);
 
     void push_back(const value_type& _value);
     void push_front(const value_type& _value);
@@ -81,14 +81,14 @@ public:
     template <typename BinaryPredicate>
     void unique(BinaryPredicate _pred);
 
-    void splice(const_iterator pos, list& other);
-    void splice(const_iterator pos, list&& other);
-    void splice(const_iterator pos, list& other, const_iterator it);
-    void splice(const_iterator pos, list&& other, const_iterator it);
-    void splice(const_iterator pos, list& other,
-                const_iterator first, const_iterator last);
-    void splice(const_iterator pos, list&& other,
-                const_iterator first, const_iterator last);
+    void splice(const_iterator _pos, list& _other);
+    void splice(const_iterator _pos, list&& _other);
+    void splice(const_iterator _pos, list& _other, const_iterator _it);
+    void splice(const_iterator _pos, list&& _other, const_iterator _it);
+    void splice(const_iterator _pos, list& _other,
+                const_iterator _first, const_iterator _last);
+    void splice(const_iterator _pos, list&& _other,
+                const_iterator _first, const_iterator _last);
 
     void swap(list& _another) noexcept;
 
@@ -305,47 +305,14 @@ template <typename T, typename Allocator>
 typename list<T, Allocator>::iterator
 list<T, Allocator>::insert(const_iterator _position, const value_type &_value)
 {
-    _position.check_valid();
-    check_iterator(_position);
-
-    iterator position(this, const_cast<list_node_base*>(_position.node));
-
-    list_node *node =
-            allocator_traits<node_allocator_type>::allocate(node_alloc, 1);
-    construct(node, _value);
-
-    node->prev = position.node->prev;
-    node->next = position.node;
-
-    position.node->prev->next = node;
-    position.node->prev = node;
-
-    register_node(node);
-
-    return iterator(this, node);
+    return emplace(_position, _value);
 }
 
 template <typename T, typename Allocator>
 typename list<T, Allocator>::iterator
 list<T, Allocator>::insert(const_iterator _position, value_type &&_value)
 {
-    _position.check_valid();
-    check_iterator(_position);
-    iterator position(this, const_cast<list_node_base*>(_position.node));
-
-    list_node *node =
-            allocator_traits<node_allocator_type>::allocate(node_alloc, 1);
-    construct(node, std::move(_value));
-
-    node->prev = position.node->prev;
-    node->next = position.node;
-
-    position.node->prev->next = node;
-    position.node->prev = node;
-
-    register_node(node);
-
-    return iterator(this, node);
+    return emplace(_position, std::move(_value));
 }
 
 template <typename T, typename Allocator>
@@ -379,6 +346,46 @@ list<T, Allocator>::insert(const_iterator _position,
                            initializer_list<value_type> _ilist)
 {
     return insert(_position, _ilist.begin(), _ilist.end());
+}
+
+template <typename T, typename Allocator>
+template <typename... Args>
+typename list<T, Allocator>::iterator
+list<T, Allocator>::emplace(const_iterator _position, Args&&... _args)
+{
+    _position.check_valid();
+    check_iterator(_position);
+    iterator position(this, const_cast<list_node_base*>(_position.node));
+
+    list_node *node =
+            allocator_traits<node_allocator_type>::allocate(node_alloc, 1);
+    construct(node, std::forward<Args>(_args)...);
+
+    node->prev = position.node->prev;
+    node->next = position.node;
+
+    position.node->prev->next = node;
+    position.node->prev = node;
+
+    register_node(node);
+
+    return iterator(this, node);
+}
+
+template <typename T, typename Allocator>
+template <typename... Args>
+typename list<T, Allocator>::iterator
+list<T, Allocator>::emplace_back(Args&&... _args)
+{
+    emplace(cend(), std::forward<Args>(_args)...);
+}
+
+template <typename T, typename Allocator>
+template <typename... Args>
+typename list<T, Allocator>::iterator
+list<T, Allocator>::emplace_front(Args&&... _args)
+{
+    emplace(cbegin(), std::forward<Args>(_args)...);
 }
 
 template <typename T, typename Allocator>
