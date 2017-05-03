@@ -248,8 +248,8 @@ public:
 
     reverse_iterator& operator++();
     reverse_iterator& operator--();
-    const reverse_iterator operator ++(int);
-    const reverse_iterator operator --(int);
+    reverse_iterator operator ++(int);
+    reverse_iterator operator --(int);
     reverse_iterator operator+ (difference_type _n);
     reverse_iterator operator- (difference_type _n);
     reverse_iterator& operator+= (difference_type _n);
@@ -315,19 +315,23 @@ reverse_iterator<Iterator>::operator-- ()
 }
 
 template <typename Iterator>
-const reverse_iterator<Iterator>
+reverse_iterator<Iterator>
 reverse_iterator<Iterator>::operator++ (int)
 {
     static_assert(traits::is_bidirectional_iterator<Iterator>::value,
                   TEMPLATE_ARG_NOT_BIDIRECTIONAL_ITERATOR);
-    return actual_iter++;
+    reverse_iterator ret(actual_iter);
+    ++actual_iter;
+    return ret;
 }
 
 template <typename Iterator>
-const reverse_iterator<Iterator>
+reverse_iterator<Iterator>
 reverse_iterator<Iterator>::operator-- (int)
 {
-    return actual_iter--;
+    reverse_iterator ret(actual_iter);
+    --actual_iter;
+    return ret;
 }
 
 template <typename Iterator>

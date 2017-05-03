@@ -6,6 +6,7 @@
 #define EXCALIBUR_HPP
 
 #include <cstdio>
+#include <iostream>
 
 namespace saber
 {
@@ -26,6 +27,17 @@ excalibur(const T* _t)
                             (const_cast<T*>(_t + i))));
     }
     std::putchar('\n');
+}
+
+template <typename InputIterator>
+void
+avalon(InputIterator _begin, InputIterator _end)
+{
+    for (;_begin != _end; ++_begin)
+    {
+        std::cout << *_begin << ' ';
+    }
+    std::cout << std::endl;
 }
 
 } // namespace saber

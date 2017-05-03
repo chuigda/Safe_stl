@@ -590,37 +590,40 @@ vector<T, Allocator>::insert(const_iterator _position,
                   TEMPLATE_ARG_NOT_COPY_ASSIGNABLE);
     check_iterator(_position);
 
-//    if (size() + _n <= capacity())
-//    {
-//        iterator iter_temp(this, const_cast<value_type*>(_position.ptr));
-//        reverse_copy(iter_temp, end(), iter_temp + _n);
-//        fill_n(iter_temp, _n, _value);
+    if (size() + _n < capacity())
+    {
+        push_back(*(cend() - 1));
 
-//        update_vector();
-//        return iterator(this, iter_temp.ptr);
-//    }
-//    else
-//    {
-    size_type add_all_size = size() + _n;
-    value_type *new_array =
-            allocator_traits<Allocator>::allocate(alloc, add_all_size);
-    difference_type position_diff = _position - cbegin();
+        iterator iter_temp(this, const_cast<value_type*>(_position.ptr));
+        reverse_copy(iter_temp, end() - 1, rbegin());
 
-    uninitialized_copy(cbegin(), cbegin() + position_diff, new_array);
-    uninitialized_fill_n(new_array + position_diff, _n, _value);
-    uninitialized_copy(cbegin() + position_diff,
-                       cend(),
-                       new_array + position_diff + _n);
+        fill_n(iter_temp, _n, _value);
 
-    clear_elements();
-    clear_capacity();
+        update_vector();
+        return iterator(this, iter_temp.ptr);
+    }
+    else
+    {
+        size_type add_all_size = size() + _n;
+        value_type *new_array =
+                allocator_traits<Allocator>::allocate(alloc, add_all_size);
+        difference_type position_diff = _position - cbegin();
 
-    array = new_array;
-    size_val = capacity_val = add_all_size;
-    update_vector();
+        uninitialized_copy(cbegin(), cbegin() + position_diff, new_array);
+        uninitialized_fill_n(new_array + position_diff, _n, _value);
+        uninitialized_copy(cbegin() + position_diff,
+                           cend(),
+                           new_array + position_diff + _n);
 
-    return begin() + position_diff;
-//    }
+        clear_elements();
+        clear_capacity();
+
+        array = new_array;
+        size_val = capacity_val = add_all_size;
+        update_vector();
+
+        return begin() + position_diff;
+    }
 }
 
 template <typename T, typename Allocator>
@@ -661,21 +664,23 @@ template <typename... Args>
 typename vector<T, Allocator>::iterator
 vector<T, Allocator>::emplace(const_iterator _position, Args... _args)
 {
+
     check_iterator(_position);
 
-//    if (size() + 1 <= capacity())
-//    {
-//        iterator iter_temp(this, const_cast<value_type*>(_position.ptr));
+    if (size() + 1 <= capacity())
+    {
+        push_back(*(cend() - 1));
+        iterator iter_temp(this, const_cast<value_type*>(_position.ptr));
 
-//        reverse_copy(iter_temp, end(), iter_temp + 1);
-//        destroy_at(iter_temp.ptr);
-//        construct(iter_temp.ptr, std::forward<Args>(_args)...);
+        reverse_copy(iter_temp, end(), rbegin());
+        destroy_at(iter_temp.ptr);
+        construct(iter_temp.ptr, std::forward<Args>(_args)...);
 
-//        update_vector();
-//        return iterator(this, iter_temp.ptr);
-//    }
-//    else
-//    {
+        update_vector();
+        return iterator(this, iter_temp.ptr);
+    }
+    else
+    {
         size_type add_all_size = size() + 1;
         value_type *new_array =
                 allocator_traits<Allocator>::allocate(alloc, add_all_size);
@@ -695,7 +700,7 @@ vector<T, Allocator>::emplace(const_iterator _position, Args... _args)
         update_vector();
 
         return begin() + position_diff;
-//    }
+    }
 }
 
 template <typename T, typename Allocator>
@@ -1030,7 +1035,6 @@ vector<T, Allocator>::iterator::operator++()
 {
     version_check();
     ++ptr;
-
     return *this;
 }
 
@@ -1040,7 +1044,6 @@ vector<T, Allocator>::iterator::operator--()
 {
     version_check();
     --ptr;
-
     return *this;
 }
 
@@ -1048,6 +1051,7 @@ template <typename T, typename Allocator>
 typename vector<T, Allocator>::iterator
 vector<T, Allocator>::iterator::operator++(int)
 {
+    version_check();
     iterator ret = *this;
     ++ptr;
     return ret;
@@ -1057,6 +1061,7 @@ template <typename T, typename Allocator>
 typename vector<T, Allocator>::iterator
 vector<T, Allocator>::iterator::operator--(int)
 {
+    version_check();
     iterator ret = *this;
     --ptr;
     return ret;

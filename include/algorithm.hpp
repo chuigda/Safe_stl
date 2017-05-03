@@ -135,7 +135,9 @@ reverse_copy(BidirectionalIterator _first,
 {
     while (_first != _last)
     {
-        *(_d_first++) = *(_last--);
+        --_last;
+        *_d_first = *_last;
+        ++_d_first;
     }
     return _d_first;
 }
