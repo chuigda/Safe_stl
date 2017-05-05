@@ -216,7 +216,8 @@ public:
     const_iterator operator-- (int);
 
 private:
-    const_iterator(const list *_get_from, const typename list::list_node_base *_node);
+    const_iterator(const list *_get_from, 
+                   const typename list::list_node_base *_node);
 
     void check_initialized(void) const noexcept;
     void check_valid(void) const noexcept;
@@ -229,15 +230,8 @@ private:
 
 template <typename T, typename Allocator>
 list<T, Allocator>::list() :
-    head(new list_node_base()),
-    alloc(),
-    node_alloc(),
-    validating_ptr(new bool(true))
+    list(Allocator())
 {
-    head->prev = head;
-    head->next = head;
-
-    nodes.insert(head);
 }
 
 template <typename T, typename Allocator>
@@ -250,7 +244,7 @@ list<T, Allocator>::list(const Allocator &_alloc) :
     head->prev = head;
     head->next = head;
 
-    nodes.insert(head);
+    register_node(head);
 }
 
 template <typename T, typename Allocator>
