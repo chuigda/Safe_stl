@@ -68,6 +68,7 @@
 
 #include "memory.hpp"
 #include "iterator.hpp"
+#include "saber_traits.hpp"
 
 namespace saber
 {
@@ -161,6 +162,33 @@ fill_n(OutputIterator _first, Size _count, const T& _value)
         *(_first++) = _value;
     }
     return _first;
+}
+
+template <typename RandomAccessIterator>
+typename iterator_traits<RandomAccessIterator>::difference_type
+distance_impl(RandomAccessIterator _first, RandomAccessIterator _last,
+              traits::true_type)
+{
+    return _last - _first;
+}
+
+template <typename InputIterator>
+typename iterator_traits<InputIterator>::difference_type
+distance_impl(InputIterator _first, InputIterator _last,
+              traits::false_type)
+{
+    typename iterator_traits<InputIterator>::difference_type size = 0;
+    for (; _first != _last; ++_first, ++size);
+    return size;
+}
+
+template <typename InputIterator>
+typename iterator_traits<InputIterator>::difference_type
+distance(InputIterator _first, InputIterator _last)
+{
+    return
+        distance_impl(_first, _last,
+                      traits::is_random_access_iterator<InputIterator>::value);
 }
 
 } // namespace saber

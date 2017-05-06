@@ -1,7 +1,8 @@
-#include <cstdio>
-﻿#include <vector>
+﻿#include <cstdio>
+#include <vector>
 #include "safe_stl_general.hpp"
 #include "tracer.hpp"
+#include "memory.hpp"
 
 void testcase_allocator()
 {

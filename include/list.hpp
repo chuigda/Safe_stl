@@ -283,9 +283,7 @@ template <typename T, typename Allocator>
 typename list<T, Allocator>::size_type
 list<T, Allocator>::size() const
 {
-    size_type ret = 0;
-    for (auto it = cbegin(); it != cend(); ++it, ++ret);
-    return ret;
+    return distance(begin(), end());
 }
 
 template <typename T, typename Allocator>
@@ -671,7 +669,7 @@ list<T, Allocator>::check_iterator(const ListIterator& _iter) const noexcept
 
 template <typename T, typename Allocator>
 list<T, Allocator>::iterator::iterator
-(const typename list::const_iterator& _const_iterator) :
+    (const typename list::const_iterator& _const_iterator) :
     get_from(const_cast<list*>(_const_iterator.get_from)),
     node(const_cast<typename list::list_node_base*>(_const_iterator.node)),
     validating_ptr(_const_iterator.validating_ptr)
@@ -682,6 +680,7 @@ template <typename T, typename Allocator>
 bool
 list<T, Allocator>::iterator::operator== (const iterator& _another) const
 {
+    check_valid();
     return node == _another.node;
 }
 
@@ -712,6 +711,7 @@ template <typename T, typename Allocator>
 typename list<T, Allocator>::iterator&
 list<T, Allocator>::iterator::operator++()
 {
+    check_valid();
     node = node->next;
     return *this;
 }
@@ -720,6 +720,7 @@ template <typename T, typename Allocator>
 typename list<T, Allocator>::iterator&
 list<T, Allocator>::iterator::operator--()
 {
+    check_valid();
     node = node->prev;
     return *this;
 }
@@ -728,6 +729,7 @@ template <typename T, typename Allocator>
 typename list<T, Allocator>::iterator
 list<T, Allocator>::iterator::operator++(int)
 {
+    check_valid();
     iterator ret(*this);
     node = node->next;
     return ret;
@@ -737,6 +739,7 @@ template <typename T, typename Allocator>
 typename list<T, Allocator>::iterator
 list<T, Allocator>::iterator::operator--(int)
 {
+    check_valid();
     iterator ret(*this);
     node = node->prev;
     return ret;
@@ -805,6 +808,7 @@ bool
 list<T, Allocator>::const_iterator::operator== (
         const const_iterator& _another) const
 {
+    check_valid();
     return node == _another.node;
 }
 
@@ -820,6 +824,7 @@ template <typename T, typename Allocator>
 typename list<T, Allocator>::const_iterator::const_reference
 list<T, Allocator>::const_iterator::operator*() const
 {
+    check_dereferencable();
     return reinterpret_cast<const typename list::list_node*>(node)->value;
 }
 
@@ -827,7 +832,6 @@ template <typename T, typename Allocator>
 typename list<T, Allocator>::const_iterator&
 list<T, Allocator>::const_iterator::operator++()
 {
-    check_initialized();
     check_valid();
     node = node->next;
     return *this;
@@ -837,7 +841,6 @@ template <typename T, typename Allocator>
 typename list<T, Allocator>::const_iterator&
 list<T, Allocator>::const_iterator::operator--()
 {
-    check_initialized();
     check_valid();
     node = node->prev;
     return *this;
@@ -847,7 +850,6 @@ template <typename T, typename Allocator>
 typename list<T, Allocator>::const_iterator
 list<T, Allocator>::const_iterator::operator++(int)
 {
-    check_initialized();
     check_valid();
     const_iterator ret(*this);
     node = node->next;

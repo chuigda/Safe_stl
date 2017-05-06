@@ -29,6 +29,15 @@ public:
         _another.size = 0;
     }
 
+    Trace& operator= (const Trace&)
+    {
+        std::printf("Operator= at %p\n", this);
+        m_dynamic = new int[4];
+        size = 4;
+
+        return *this;
+    }
+
     ~Trace()
     {
         std::printf("~Trace() at %p\n", this);
