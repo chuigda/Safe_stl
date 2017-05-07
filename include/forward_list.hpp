@@ -34,26 +34,51 @@ public:
 
     explicit forward_list();
     explicit forward_list(const Allocator& _alloc);
+    explicit forward_list(size_type _n,
+                          const Allocator& _alloc = Allocator());
     forward_list(const forward_list& _another);
-    forward_list(size_type _n);
-    forward_list(size_type _n, const value_type& _value);
+    forward_list(size_type _n, const value_type& _value,
+                 const Allocator& _alloc = Allocator());
     template <typename InputIterator>
-    forward_list(InputIterator _first, InputIterator _last);
-    forward_list(std::initializer_list<value_type> _list);
+    forward_list(InputIterator _first, InputIterator _last,
+                 const Allocator& _alloc = Allocator());
+    forward_list(std::initializer_list<value_type> _ilist,
+                 const Allocator& _alloc = Allocator());
 
     ~forward_list();
 
     size_type size() const;
+    size_type max_size() const;
     bool empty() const;     
 
-    iterator begin();
-    iterator end();
+    template <typename... Args>
+    iterator emplace_after(const_iterator _pos, Args&&... _args);
 
-    const_iterator begin() const;
-    const_iterator end() const;
+    iterator insert_after(const_iterator _pos, const value_type& _value);
+    iterator insert_after(const_iterator _pos, value_type&& _value);
+    iterator insert_after(const_iterator _pos,
+                          size_type _n, const value_type &_value);
+    template <typename InputIterator>
+    iterator insert_after(const_iterator _pos,
+                          InputIterator _first, InputIterator _last);
+    iterator insert_after(const_iterator _pos,
+                          initializer_list<value_type> _ilist);
 
-    const_iterator cbegin() const;
-    const_iterator cend() const;
+    iterator erase_after(const_iterator _pos);
+    iterator erase_after(const_iterator _first, const_iterator _last);
+
+    iterator begin() noexcept;
+    iterator end() noexcept;
+
+    const_iterator begin() const noexcept;
+    const_iterator end() const noexcept;
+
+    const_iterator cbegin() const noexcept;
+    const_iterator cend() const noexcept;
+
+    iterator before_begin() noexcept;
+    const_iterator before_begin() const noexcept;
+    const_iterator cbefore_begin() const noexcept;
 
 private:
     struct list_node_base
@@ -93,7 +118,7 @@ private:
 template <typename T, typename Allocator>
 class forward_list<T, Allocator>::iterator
 {
-    friend class list;
+    friend class forward_list;
 public:
     using iterator_category = std::forward_iterator_tag;
     using value_type        = typename forward_list::value_type;
@@ -132,7 +157,7 @@ private:
 template <typename T, typename Allocator>
 class forward_list<T, Allocator>::const_iterator
 {
-    friend class list;
+    friend class forward_list;
 public:
     using iterator_category = std::forward_iterator_tag;
     using value_type = typename forward_list::value_type;
@@ -181,15 +206,22 @@ forward_list<T, Allocator>::forward_list(const Allocator& _alloc) :
     validating_ptr(new bool(true))
 {
     head->next = head;
-
     register_node(head);
+}
+
+template <typename T, typename Allocator>
+forward_list<T, Allocator>::forward_list(
+        std::initializer_list<value_type> _ilist, const Allocator &_alloc) :
+    forward_list(_alloc)
+{
+    insert_after(cbefore_begin(), _ilist);
 }
 
 template <typename T, typename Allocator>
 forward_list<T, Allocator>::~forward_list()
 {
-#error This part is incomplete
-#error this information should not be removed before completing forward_list
+    erase_after(cbefore_begin(), cend());
+    *(validating_ptr.get()) = false;
 }
 
 template <typename T, typename Allocator>
@@ -200,6 +232,13 @@ forward_list<T, Allocator>::size() const
 }
 
 template <typename T, typename Allocator>
+typename forward_list<T, Allocator>::size_type
+forward_list<T, Allocator>::max_size() const
+{
+    return std::numeric_limits<size_type>::max();
+}
+
+template <typename T, typename Allocator>
 bool
 forward_list<T, Allocator>::empty() const
 {
@@ -207,52 +246,213 @@ forward_list<T, Allocator>::empty() const
 }
 
 template <typename T, typename Allocator>
+template <typename... Args>
 typename forward_list<T, Allocator>::iterator
-forward_list<T, Allocator>::begin()
+forward_list<T, Allocator>::emplace_after(const_iterator _pos, Args&&... _args)
+{
+    _pos.check_valid();
+    check_iterator(_pos);
+
+    list_node *node =
+            allocator_traits<node_allocator_type>::allocate(node_alloc, 1);
+    construct(node, std::forward<Args>(_args)...);
+
+    iterator mutable_iterator(_pos);
+    node->next = mutable_iterator.node->next;
+    mutable_iterator.node->next = node;
+
+    register_node(node);
+    return iterator(this, node);
+}
+
+template <typename T, typename Allocator>
+typename forward_list<T, Allocator>::iterator
+forward_list<T, Allocator>::insert_after(const_iterator _pos,
+                                         const value_type& _value)
+{
+    return emplace_after(_pos, _value);
+}
+
+template <typename T, typename Allocator>
+typename forward_list<T, Allocator>::iterator
+forward_list<T, Allocator>::insert_after(const_iterator _pos,
+                                         size_type _n,
+                                         const value_type& _value)
+{
+    for (size_type i = 0; i < _n; ++i)
+    {
+        emplace_after(_pos, _value);
+    }
+    return iterator(_pos);
+}
+
+template <typename T, typename Allocator>
+typename forward_list<T, Allocator>::iterator
+forward_list<T, Allocator>::insert_after(const_iterator _pos,
+                                         value_type &&_value)
+{
+    return emplace_after(_pos, std::move(_value));
+}
+
+template <typename T, typename Allocator>
+template <typename InputIterator>
+typename forward_list<T, Allocator>::iterator
+forward_list<T, Allocator>::insert_after(const_iterator _pos,
+                                         InputIterator _first,
+                                         InputIterator _last)
+{
+    for (; _first != _last; ++_first)
+    {
+        _pos = emplace_after(_pos, *_first);
+    }
+
+    return iterator(_pos);
+}
+
+template <typename T, typename Allocator>
+typename forward_list<T, Allocator>::iterator
+forward_list<T, Allocator>::insert_after(const_iterator _pos,
+                                         initializer_list<value_type> _ilist)
+{
+    return insert_after(_pos, _ilist.begin(), _ilist.end());
+}
+
+template <typename T, typename Allocator>
+typename forward_list<T, Allocator>::iterator
+forward_list<T, Allocator>::erase_after(const_iterator _pos)
+{
+    _pos.check_valid();
+    check_iterator(_pos);
+
+    iterator mutable_iterator(_pos);
+
+    list_node_base *deleted_node = _pos.node->next;
+    mutable_iterator.node->next = deleted_node->next;
+
+    destroy_at(deleted_node);
+    detach_node(deleted_node);
+    allocator_traits<node_allocator_type>::deallocate(
+                node_alloc,
+                reinterpret_cast<typename forward_list::list_node*>
+                    (deleted_node),
+                1);
+
+    return mutable_iterator;
+}
+
+template <typename T, typename Allocator>
+typename forward_list<T, Allocator>::iterator
+forward_list<T, Allocator>::erase_after(const_iterator _first,
+                                        const_iterator _last)
+{
+    for (; _first != _last; _first = erase_after(_first));
+    return iterator(_first);
+}
+
+template <typename T, typename Allocator>
+typename forward_list<T, Allocator>::iterator
+forward_list<T, Allocator>::begin() noexcept
 {
     return iterator(this, head->next);
 }
 
 template <typename T, typename Allocator>
 typename forward_list<T, Allocator>::iterator
-forward_list<T, Allocator>::end()
+forward_list<T, Allocator>::end() noexcept
 {
     return iterator(this, head);
 }
 
 template <typename T, typename Allocator>
 typename forward_list<T, Allocator>::const_iterator
-forward_list<T, Allocator>::begin() const
+forward_list<T, Allocator>::begin() const noexcept
 {
     return const_iterator(this, head->next);
 }
 
 template <typename T, typename Allocator>
 typename forward_list<T, Allocator>::const_iterator
-forward_list<T, Allocator>::end() const
+forward_list<T, Allocator>::end() const noexcept
 {
     return const_iterator(this, head);
 }
 
 template <typename T, typename Allocator>
 typename forward_list<T, Allocator>::const_iterator
-forward_list<T, Allocator>::cbegin() const
+forward_list<T, Allocator>::cbegin() const noexcept
 {
     return begin();
 }
 
 template <typename T, typename Allocator>
 typename forward_list<T, Allocator>::const_iterator
-forward_list<T, Allocator>::cend() const
+forward_list<T, Allocator>::cend() const noexcept
 {
     return end();
 }
 
 template <typename T, typename Allocator>
+typename forward_list<T, Allocator>::iterator
+forward_list<T, Allocator>::before_begin() noexcept
+{
+    return end();
+}
+
+template <typename T, typename Allocator>
+typename forward_list<T, Allocator>::const_iterator
+forward_list<T, Allocator>::before_begin() const noexcept
+{
+    return cend();
+}
+
+template <typename T, typename Allocator>
+typename forward_list<T, Allocator>::const_iterator
+forward_list<T, Allocator>::cbefore_begin() const noexcept
+{
+    return cend();
+}
+
+template <typename T, typename Allocator>
+void
+forward_list<T, Allocator>::register_node(const list_node_base *_node)
+{
+    nodes.insert(_node);
+}
+
+template <typename T, typename Allocator>
+void
+forward_list<T, Allocator>::detach_node(const list_node_base *_node)
+{
+    nodes.erase(_node);
+}
+
+template <typename T, typename Allocator>
+bool
+forward_list<T, Allocator>::search_node(const list_node_base *_node) const
+{
+    return (nodes.find(_node) != nodes.end());
+}
+
+template <typename T, typename Allocator>
+template <typename ForwardListIterator>
+void
+forward_list<T, Allocator>::check_iterator(
+        const ForwardListIterator& _iter) const noexcept
+{
+    if (!search_node(_iter.node))
+    {
+        stl_panic(UNKNOWN_REGION_ITERATOR);
+    }
+}
+
+
+
+template <typename T, typename Allocator>
 forward_list<T, Allocator>::iterator::iterator(
         const typename forward_list::const_iterator& _const_iterator) :
     get_from(const_cast<forward_list*>(_const_iterator.get_from)),
-    node(const_cast<forward_list*>(_const_iterator.node)),
+    node(const_cast<typename forward_list::list_node_base*>
+         (_const_iterator.node)),
     validating_ptr(_const_iterator.validating_ptr)
 {
 }
@@ -328,7 +528,7 @@ forward_list<T, Allocator>::iterator::check_initialized() const noexcept
         assert(node == nullptr);
         assert(validating_ptr.get() == nullptr);
         stl_panic(UNINITIALIZED_ITERATOR);
-    }
+   }
 }
 
 template <typename T, typename Allocator>
