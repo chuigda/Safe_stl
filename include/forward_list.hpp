@@ -108,6 +108,7 @@ private:
         typename Allocator::template rebind<list_node>::other;
 
     list_node_base *head;
+    list_node_base *tail;
     allocator_type alloc;
     node_allocator_type node_alloc;
 
@@ -201,12 +202,15 @@ forward_list<T, Allocator>::forward_list() :
 template <typename T, typename Allocator>
 forward_list<T, Allocator>::forward_list(const Allocator& _alloc) :
     head(new list_node_base()),
+    tail(new list_node_base()),
     alloc(_alloc),
     node_alloc(alloc),
     validating_ptr(new bool(true))
 {
-    head->next = head;
+    head->next = tail;
+    tail->next = head;
     register_node(head);
+    register_node(tail);
 }
 
 template <typename T, typename Allocator>
@@ -221,6 +225,8 @@ template <typename T, typename Allocator>
 forward_list<T, Allocator>::~forward_list()
 {
     erase_after(cbefore_begin(), cend());
+    delete head;
+    delete tail;
     *(validating_ptr.get()) = false;
 }
 
@@ -345,7 +351,7 @@ typename forward_list<T, Allocator>::iterator
 forward_list<T, Allocator>::erase_after(const_iterator _first,
                                         const_iterator _last)
 {
-    for (; _first != _last; _first = erase_after(_first));
+    for (; _first.node->next != _last.node; erase_after(_first));
     return iterator(_first);
 }
 
@@ -360,7 +366,7 @@ template <typename T, typename Allocator>
 typename forward_list<T, Allocator>::iterator
 forward_list<T, Allocator>::end() noexcept
 {
-    return iterator(this, head);
+    return iterator(this, tail);
 }
 
 template <typename T, typename Allocator>
@@ -374,7 +380,7 @@ template <typename T, typename Allocator>
 typename forward_list<T, Allocator>::const_iterator
 forward_list<T, Allocator>::end() const noexcept
 {
-    return const_iterator(this, head);
+    return const_iterator(this, tail);
 }
 
 template <typename T, typename Allocator>
@@ -395,21 +401,21 @@ template <typename T, typename Allocator>
 typename forward_list<T, Allocator>::iterator
 forward_list<T, Allocator>::before_begin() noexcept
 {
-    return end();
+    return iterator(this, head);
 }
 
 template <typename T, typename Allocator>
 typename forward_list<T, Allocator>::const_iterator
 forward_list<T, Allocator>::before_begin() const noexcept
 {
-    return cend();
+    return const_iterator(this, head);
 }
 
 template <typename T, typename Allocator>
 typename forward_list<T, Allocator>::const_iterator
 forward_list<T, Allocator>::cbefore_begin() const noexcept
 {
-    return cend();
+    return before_begin();
 }
 
 template <typename T, typename Allocator>

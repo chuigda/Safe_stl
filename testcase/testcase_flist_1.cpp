@@ -7,6 +7,10 @@ void testcase_flist_1(void)
     {
         std::forward_list<int> l {2, 1, 4, 7};
 
+        l.insert_after(l.begin(), {6, 5, 6, 7});
+        l.erase_after(l.begin()++);
+        l.erase_after(l.before_begin());
+
         for (auto& x : l)
         {
             std::printf("%d ", x);
@@ -16,6 +20,10 @@ void testcase_flist_1(void)
 
     {
         saber::forward_list<int> l {2, 1, 4, 7};
+
+        l.insert_after(l.begin(), {6, 5, 6, 7});
+        l.erase_after(l.begin()++);
+        l.erase_after(l.before_begin());
 
         for (auto& x : l)
         {
