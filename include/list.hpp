@@ -1,4 +1,42 @@
-﻿#ifdef _MSC_VER
+﻿//////////////////////////////////////////////////////////////////////////////
+//  芙蓉城三月雨纷纷 四月绣花针                                             //
+//  羽毛扇遥指千军阵 锦缎裁几寸                                             //
+//  看铁马踏冰河 丝线缝韶华 红尘千帐灯                                      //
+//  山水一程风雪再一程                                                      //
+//  红烛枕五月花叶深 六月杏花村                                             //
+//  红酥手青丝万千根 姻缘多一分                                             //
+//  等残阳照孤影 牡丹染铜樽 满城牧笛声                                      //
+//  伊人倚门望君踏归程                                                      //
+
+//  君可见刺绣每一针 有人为你疼                                             //
+//  君可见牡丹开一生 有人为你等                                             //
+//  江河入海奔 万物为谁春                                                   //
+//  明月照不尽离别人                                                        //
+//  君可见刺绣又一针 有人为你疼                                             //
+//  君可见夏雨秋风 有人为你等                                               //
+//  翠竹泣墨痕 锦书画不成                                                   //
+//  情针意线绣不尽 鸳鸯枕                                                   //
+
+//  此生笑傲风月瘦如刀 催人老                                               //
+//  来世与君暮暮又朝朝 多逍遥                                               //
+
+//  绕指柔破锦千万针 杜鹃啼血声                                             //
+//  芙蓉花蜀国尽缤纷 转眼尘归尘                                             //
+//  战歌送离人 行人欲断魂                                                   //
+//  浓情蜜意此话当真
+
+//  君可见刺绣每一针 有人为你疼                                             //
+//  君可见牡丹开一生 有人为你等                                             //
+//  江河入海奔 万物为谁春                                                   //
+//  明月照不尽离别人                                                        //
+//  君可见刺绣又一针 有人为你疼                                             //
+//  君可见夏雨秋风有人 为你等                                               //
+//  翠竹泣墨痕 锦书画不成                                                   //
+//  情针意线绣不尽 鸳鸯枕                                                   //
+//////////////////////////////////////////////////////////////////////////////
+
+
+#ifdef _MSC_VER
 #pragma once
 #endif
 
@@ -36,11 +74,15 @@ public:
     explicit list();
     explicit list(const Allocator& _alloc);
     list(const list& _another);
-    list(size_type _n);
-    list(size_type _n, const value_type& _value);
+    list(const list& _another, const Allocator& _alloc);
+    list(size_type _n, const Allocator& _alloc = Allocator());
+    list(size_type _n, const value_type& _value,
+         const Allocator& _alloc = Allocator());
     template <typename InputIterator>
-    list(InputIterator _first, InputIterator _last);
-    list(std::initializer_list<value_type> _list);
+    list(InputIterator _first, InputIterator _last,
+         const Allocator& _alloc = Allocator());
+    list(std::initializer_list<value_type> _list,
+         const Allocator& _alloc = Allocator());
     ~list();
 
     size_type size() const;
@@ -249,26 +291,47 @@ list<T, Allocator>::list(const Allocator &_alloc) :
 
 template <typename T, typename Allocator>
 list<T, Allocator>::list(const list& _another) :
-    list(_another.alloc)
+    list(_another, _another.alloc)
 {
-    for (auto it = _another.cbegin();
-         it != _another.cend();
-         ++it)
-    {
-        insert(cend(), *it);
-    }
 }
 
 template <typename T, typename Allocator>
-list<T, Allocator>::list(initializer_list<value_type> _ilist) :
-    list()
+list<T, Allocator>::list(const list &_another, const Allocator &_alloc) :
+    list(_alloc)
 {
-    for (auto it = _ilist.begin();
-         it != _ilist.end();
-         ++it)
-    {
-        insert(cend(), *it);
-    }
+    insert(cend(), _another.cbegin(), _another.cend());
+}
+
+template <typename T, typename Allocator>
+list<T, Allocator>::list(size_type _n,
+                         const value_type &_value,
+                         const Allocator &_alloc) :
+    list(_alloc)
+{
+    insert(cend(), _n, _value);
+}
+
+template <typename T, typename Allocator>
+list<T, Allocator>::list(size_type _n, const Allocator &_alloc) :
+    list(_n, value_type(), _alloc)
+{
+}
+
+template <typename T, typename Allocator>
+list<T, Allocator>::list(initializer_list<value_type> _ilist,
+                         const Allocator& _alloc) :
+    list(_alloc)
+{
+    insert(cend(), _ilist.begin(), _ilist.end());
+}
+
+template <typename T, typename Allocator>
+template <typename InputIterator>
+list<T, Allocator>::list(InputIterator _first, InputIterator _last,
+                         const Allocator& _alloc) :
+    list(_alloc)
+{
+    insert(cend(), _first, _last);
 }
 
 template <typename T, typename Allocator>
@@ -497,9 +560,6 @@ void
 list<T, Allocator>::splice(const_iterator _pos, list &_other,
                            const_iterator _first, const_iterator _last)
 {
-    // Fixme : This function contains lots of low-level operations,
-    //         making my implementation ugly.
-
     _pos.check_valid();
     check_iterator(_pos);
     _first.check_valid();
@@ -509,27 +569,27 @@ list<T, Allocator>::splice(const_iterator _pos, list &_other,
 
     if (alloc == _other.alloc)
     {
-        insert(_pos, _first, _last);
-        _other.erase(_first, _last);
-// Fixme : the following comments is a failed algorithm.
-//        iterator pos(_pos);
-//        iterator first(_first), last(_last);
+        list_node_base *transfer_to =
+                const_cast<list_node_base*>(_pos.node->prev);
+        list_node_base *transfer_first =
+                const_cast<list_node_base*>(_first.node);
+        list_node_base *transfer_last =
+                const_cast<list_node_base*>(_last.node->prev);
 
-//        for (const list_node_base *node_it = _first.node;
-//             node_it != _last.node;
-//             node_it = node_it->next)
-//        {
-//            register_node(node_it);
-//            _other.detach_node(node_it);
-//        }
+        for (auto first_blood = _first.node;
+             first_blood != _last.node;
+             first_blood = first_blood->next)
+        {
+            register_node(first_blood);
+            _other.detach_node(first_blood);
+        }
 
-//        last.node->prev->next = pos.node;
-//        first.node->next->prev = last.node;
-//        pos.node->prev->next = first.node;
-//        list_node_base *s = pos.node->prev;
-//        pos.node->prev = last.node->prev;
-//        last.node->prev = first.node->prev;
-//        first.node->prev = s;
+        transfer_first->prev->next = transfer_last->next;
+        transfer_last->next->prev = transfer_first->prev;
+        transfer_last->next = transfer_to->next;
+        transfer_first->prev = transfer_to;
+        transfer_to->next->prev = transfer_last;
+        transfer_to->next = transfer_first;
     }
     else
     {

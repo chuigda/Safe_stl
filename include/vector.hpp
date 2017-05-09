@@ -37,7 +37,8 @@ public:
     using reverse_iterator       = saber::reverse_iterator<iterator>;
     using const_reverse_iterator = saber::reverse_iterator<const_iterator>;
 
-    explicit vector();
+    vector();
+    explicit vector(const Allocator& _allocator);
     vector(const vector& _another);
     vector(const vector& _another, const allocator_type& _allocator);
     explicit vector(size_type _n, const allocator_type& _allocator);
@@ -254,7 +255,13 @@ private:
 
 template <typename T, typename Allocator>
 vector<T, Allocator>::vector() :
-    alloc(),
+    vector(Allocator())
+{
+}
+
+template <typename T, typename Allocator>
+vector<T, Allocator>::vector(const Allocator &_allocator) :
+    alloc(_allocator),
     validating_ptr(new bool(true))
 {
     array = allocator_traits<Allocator>::allocate(alloc, 4);
