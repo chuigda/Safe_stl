@@ -38,23 +38,23 @@ public:
     using const_reverse_iterator = saber::reverse_iterator<const_iterator>;
 
     vector();
-    explicit vector(const Allocator& _allocator);
+    explicit vector(const Allocator& _alloc);
     vector(const vector& _another);
-    vector(const vector& _another, const allocator_type& _allocator);
-    explicit vector(size_type _n, const allocator_type& _allocator);
+    vector(const vector& _another, const allocator_type& _alloc);
+    explicit vector(size_type _n, const allocator_type& _alloc);
     explicit vector(size_type _n,
                     const value_type& _value,
-                    const allocator_type& _allocator);
+                    const allocator_type& _alloc);
     vector(vector&& _another);
-    vector(vector&& _another, const allocator_type& _allocator);
+    vector(vector&& _another, const allocator_type& _alloc);
 
     vector(initializer_list<value_type> _list,
-           const allocator_type& _allocator = Allocator());
+           const allocator_type& _alloc = Allocator());
 
     template <typename InputIterator>
     vector(InputIterator _first,
            InputIterator _last,
-           const allocator_type& _allocator = Allocator());
+           const allocator_type& _alloc = Allocator());
     ~vector();
 
     vector& operator= (const vector& _another);
@@ -260,8 +260,8 @@ vector<T, Allocator>::vector() :
 }
 
 template <typename T, typename Allocator>
-vector<T, Allocator>::vector(const Allocator &_allocator) :
-    alloc(_allocator),
+vector<T, Allocator>::vector(const Allocator &_alloc) :
+    alloc(_alloc),
     validating_ptr(new bool(true))
 {
     array = allocator_traits<Allocator>::allocate(alloc, 4);
@@ -279,8 +279,8 @@ vector<T, Allocator>::vector(const vector &_another) :
 
 template <typename T, typename Allocator>
 vector<T, Allocator>::vector(const vector &_another,
-                             const allocator_type &_allocator) :
-    alloc(_allocator),
+                             const allocator_type &_alloc) :
+    alloc(_alloc),
     validating_ptr(new bool(true))
 {
     stl_warning(CONTAINER_COPY);
@@ -294,21 +294,16 @@ vector<T, Allocator>::vector(const vector &_another,
 
 template <typename T, typename Allocator>
 vector<T, Allocator>::vector(size_type _n,
-                             const allocator_type &_allocator) :
-    alloc(_allocator),
-    validating_ptr(new bool(true))
+                             const allocator_type &_alloc) :
+    vector(_n, value_type(), _alloc)
 {
-    array = allocator_traits<Allocator>::allocate(alloc, _n);
-    capacity_val = _n;
-    size_val = 0;
-    update_vector();
 }
 
 template <typename T, typename Allocator>
 vector<T, Allocator>::vector(size_type _n,
                              const value_type &_value,
-                             const allocator_type &_allocator) :
-    alloc(_allocator),
+                             const allocator_type &_alloc) :
+    alloc(_alloc),
     validating_ptr(new bool(true))
 {
     array = allocator_traits<Allocator>::allocate(alloc, _n);
@@ -320,8 +315,8 @@ vector<T, Allocator>::vector(size_type _n,
 
 template <typename T, typename Allocator>
 vector<T, Allocator>::vector(initializer_list<value_type> _list,
-                             const allocator_type &_allocator) :
-    vector(_list.begin(), _list.end(), _allocator)
+                             const allocator_type &_alloc) :
+    vector(_list.begin(), _list.end(), _alloc)
 {
 }
 
@@ -329,8 +324,8 @@ template <typename T, typename Allocator>
 template <typename InputIterator>
 vector<T, Allocator>::vector(InputIterator _begin,
                              InputIterator _end,
-                             const allocator_type& _allocator) :
-    alloc(_allocator),
+                             const allocator_type& _alloc) :
+    alloc(_alloc),
     validating_ptr(new bool(true))
 {
     static_assert(traits::is_input_iterator<InputIterator>::value,
@@ -362,8 +357,8 @@ vector<T, Allocator>::vector(vector &&_another) :
 
 template <typename T, typename Allocator>
 vector<T, Allocator>::vector(vector &&_another,
-                             const allocator_type &_allocator) :
-    alloc(_allocator),
+                             const allocator_type &_alloc) :
+    alloc(_alloc),
     validating_ptr(new bool(true))
 {
     array = _another.array;

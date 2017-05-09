@@ -34,9 +34,11 @@ public:
 
     explicit forward_list();
     explicit forward_list(const Allocator& _alloc);
+    forward_list(const forward_list& _another);
+    forward_list(const forward_list* _another,
+                 const Allocator& _alloc);
     explicit forward_list(size_type _n,
                           const Allocator& _alloc = Allocator());
-    forward_list(const forward_list& _another);
     forward_list(size_type _n, const value_type& _value,
                  const Allocator& _alloc = Allocator());
     template <typename InputIterator>
@@ -214,11 +216,50 @@ forward_list<T, Allocator>::forward_list(const Allocator& _alloc) :
 }
 
 template <typename T, typename Allocator>
-forward_list<T, Allocator>::forward_list(
-        std::initializer_list<value_type> _ilist, const Allocator &_alloc) :
+forward_list<T, Allocator>::forward_list(const forward_list &_another) :
+    forward_list(_another, _another.alloc)
+{
+}
+
+template <typename T, typename Allocator>
+forward_list<T, Allocator>::forward_list(const forward_list *_another,
+                                         const Allocator &_alloc) :
     forward_list(_alloc)
 {
-    insert_after(cbefore_begin(), _ilist);
+    insert_after(cbefore_begin(), _another->begin(), _another->end());
+}
+
+template <typename T, typename Allocator>
+forward_list<T, Allocator>::forward_list(size_type _n,
+                                         const Allocator &_alloc) :
+    forward_list(_n, value_type(), _alloc)
+{
+}
+
+template <typename T, typename Allocator>
+forward_list<T, Allocator>::forward_list(size_type _n,
+                                         const value_type &_value,
+                                         const Allocator &_alloc) :
+    forward_list(_alloc)
+{
+    insert_after(cbefore_begin(), _n, _value);
+}
+
+template <typename T, typename Allocator>
+template <typename InputIterator>
+forward_list<T, Allocator>::forward_list(
+        InputIterator _first, InputIterator _last,
+        const Allocator& _alloc) :
+    forward_list(_alloc)
+{
+    insert_after(cbefore_begin(), _first, _last);
+}
+
+template <typename T, typename Allocator>
+forward_list<T, Allocator>::forward_list(
+        std::initializer_list<value_type> _ilist, const Allocator &_alloc) :
+    forward_list(_ilist.begin(), _ilist.end(), _alloc)
+{
 }
 
 template <typename T, typename Allocator>
