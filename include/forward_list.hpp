@@ -49,6 +49,13 @@ public:
 
     ~forward_list();
 
+    template <typename InputIterator>
+    void assign(InputIterator _first, InputIterator _last);
+    void assign(size_type _n, const value_type& _value);
+
+    reference front();
+    const_reference front() const;
+
     size_type size() const;
     size_type max_size() const;
     bool empty() const;     
@@ -68,6 +75,34 @@ public:
 
     iterator erase_after(const_iterator _pos);
     iterator erase_after(const_iterator _first, const_iterator _last);
+
+    void splice_after(const_iterator _pos, forward_list& _from);
+    void splice_after(const_iterator _pos, forward_list&& _from);
+    void splice_after(const_iterator _pos, forward_list& _from,
+                      const_iterator _before_first);
+    void splice_after(const_iterator _pos, forward_list&& _from,
+                      const_iterator _before_first);
+    void splice_after(const_iterator _pos, forward_list& _from,
+                      const_iterator _before_first,
+                      const_iterator _last);
+    void splice_after(const_iterator _pos, forward_list&& _from,
+                      const_iterator _before_first,
+                      const_iterator _last);
+
+    void unique();
+    template <typename BinaryPredicate>
+    void unique(BinaryPredicate _pred);
+
+    void remove(const value_type& _value);
+    template <typename Predicate>
+    void remove_if(Predicate _pred);
+
+    template <typename Compare>
+    void merge(forward_list& _another, Compare _comp);
+    template <typename Compare>
+    void merge(forward_list&& _another, Compare _comp);
+
+    void reverse() noexcept;
 
     iterator begin() noexcept;
     iterator end() noexcept;
