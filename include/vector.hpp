@@ -244,7 +244,6 @@ private:
     {}
 
     void version_check() const;
-
     void boundary_check(difference_type _offset) const;
 
     const vector *get_from;
