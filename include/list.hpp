@@ -122,6 +122,7 @@ public:
     template <typename UnaryPredicate>
     void remove_if(UnaryPredicate _pred);
 
+    void unique();
     template <typename BinaryPredicate>
     void unique(BinaryPredicate _pred);
 
@@ -539,6 +540,38 @@ list<T, Allocator>::remove_if(UnaryPredicate _pred)
         {
             ++it;
         }
+    }
+}
+
+template <typename T, typename Allocator>
+void
+list<T, Allocator>::unique()
+{
+    unique(std::equal_to<T>());
+}
+
+template <typename T, typename Allocator>
+template <typename BinaryPredicate>
+void
+list<T, Allocator>::unique(BinaryPredicate _binary_pred)
+{
+    if (cbegin() == cend()) return;
+
+    auto it = cbegin(),
+         it2 = ++cbegin();
+    while (it2 != cend())
+    {
+        if (_binary_pred(*it, *it2))
+        {
+            it = erase(it);
+        }
+        else
+        {
+            ++it;
+        }
+
+        it2 = it++;
+        saber::swap(it2, it);
     }
 }
 

@@ -6,7 +6,7 @@ using std::putchar;
 
 void testcase_list_4()
 {
-    printf("Running testcase 3:\n");
+    printf("Running testcase 4:\n");
     {
         printf("Behaviour of std::list\n");
         std::list<int> l1 {1, 2, 3, 4};
@@ -71,4 +71,6 @@ void testcase_list_4()
         }
         putchar('\n');
     }
+
+    printf("\n\n");
 }

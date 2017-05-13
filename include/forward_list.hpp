@@ -60,6 +60,8 @@ public:
     size_type max_size() const;
     bool empty() const;     
 
+    void clear();
+
     template <typename... Args>
     iterator emplace_after(const_iterator _pos, Args&&... _args);
 
@@ -307,6 +309,23 @@ forward_list<T, Allocator>::~forward_list()
 }
 
 template <typename T, typename Allocator>
+template <typename InputIterator>
+void
+forward_list<T, Allocator>::assign(InputIterator _first, InputIterator _last)
+{
+    clear();
+    insert_after(cbefore_begin(), _first, _last);
+}
+
+template <typename T, typename Allocator>
+void
+forward_list<T, Allocator>::assign(size_type _n, const value_type &_value)
+{
+    clear();
+    insert_after(cbefore_begin(), size_type(_n), _value);
+}
+
+template <typename T, typename Allocator>
 typename forward_list<T, Allocator>::size_type
 forward_list<T, Allocator>::size() const
 {
@@ -325,6 +344,13 @@ bool
 forward_list<T, Allocator>::empty() const
 {
     return (begin() == end());
+}
+
+template <typename T, typename Allocator>
+void
+forward_list<T, Allocator>::clear()
+{
+    erase_after(cbefore_begin(), cend());
 }
 
 template <typename T, typename Allocator>
@@ -429,6 +455,142 @@ forward_list<T, Allocator>::erase_after(const_iterator _first,
 {
     for (; _first.node->next != _last.node; erase_after(_first));
     return iterator(_first);
+}
+
+template <typename T, typename Allocator>
+void
+forward_list<T, Allocator>::splice_after(const_iterator _pos,
+                                         forward_list &_from)
+{
+    splice_after(_pos, _from, _from.cbefore_begin(), _from.cend());
+}
+
+template <typename T, typename Allocator>
+void
+forward_list<T, Allocator>::splice_after(const_iterator _pos,
+                                         forward_list &_from,
+                                         const_iterator _before_first)
+{
+    splice_after(_pos, _from, _before_first, _from.cend());
+}
+
+template <typename T, typename Allocator>
+void
+forward_list<T, Allocator>::splice_after(const_iterator _pos,
+                                         forward_list& _from,
+                                         const_iterator _before_first,
+                                         const_iterator _last)
+{
+    if (alloc == _from.alloc)
+    {
+        _pos.check_valid();
+        check_iterator(_pos);
+        _before_first.check_valid();
+        _last.check_valid();
+        _from.check_iterator(_before_first);
+        _from.check_iterator(_last);
+
+        list_node_base *pos_node =
+                const_cast<list_node_base*>(_pos.node);
+        list_node_base *before_first_node =
+                const_cast<list_node_base*>(_before_first.node);
+        list_node_base *last_node =
+                const_cast<list_node_base*>(_last.node);
+
+        for (list_node_base *node_it = before_first_node->next;
+             node_it != last_node;
+             node_it = node_it->next)
+        {
+            register_node(node_it);
+            _from.detach_node(node_it);
+        }
+
+        {
+            list_node_base *before_last_node;
+            for (before_last_node = before_first_node;
+                 before_last_node->next != last_node;
+                 before_last_node = before_last_node->next);
+
+            before_last_node->next = pos_node->next;
+            pos_node->next = before_first_node->next;
+            before_first_node->next = last_node;
+        }
+    }
+    else
+    {
+        stl_warning(SPLICE_BETWEEN_UNEQUAL_ALLOC_CONTAINERS);
+        insert_after(_pos, ++_before_first, _last);
+        _from.erase_after(_before_first, _last);
+    }
+}
+
+template <typename T, typename Allocator>
+void
+forward_list<T, Allocator>::unique()
+{
+    unique(std::equal_to<T>());
+}
+
+template <typename T, typename Allocator>
+template <typename BinaryPredicate>
+void
+forward_list<T, Allocator>::unique(BinaryPredicate _binary_pred)
+{
+    if (cbegin() == cend()) return;
+
+    auto it = cbegin(),
+         it2 = ++cbegin();
+    while (it2 != cend())
+    {
+        if (_binary_pred(*it, *it2))
+        {
+            it = erase_after(it);
+        }
+        else
+        {
+            ++it;
+        }
+
+        it2 = it++;
+        saber::swap(it2, it);
+    }
+}
+
+template <typename T, typename Allocator>
+void
+forward_list<T, Allocator>::remove(const value_type &_value)
+{
+    remove_if(
+                [&](const value_type& _another_value) -> bool
+                {
+                    return _value == _another_value;
+                }
+    );
+}
+
+template <typename T, typename Allocator>
+template <typename Predicate>
+void
+forward_list<T, Allocator>::remove_if(Predicate _pred)
+{
+    if (cbegin() == cend()) return;
+
+    auto it = cbefore_begin(),
+         it2 = cbegin();
+    while (it2 != cend())
+    {
+        if (_pred(*it2))
+        {
+            it = erase_after(it);
+        }
+        else
+        {
+            it++;
+        }
+
+        it2 = it++;
+        saber::swap(it2, it);
+    }
 }
 
 template <typename T, typename Allocator>

@@ -325,16 +325,8 @@ template <typename InputIterator>
 vector<T, Allocator>::vector(InputIterator _begin,
                              InputIterator _end,
                              const allocator_type& _alloc) :
-    alloc(_alloc),
-    validating_ptr(new bool(true))
+    vector(_alloc)
 {
-    static_assert(traits::is_input_iterator<InputIterator>::value,
-                  TEMPLATE_ARG_NOT_INPUT_ITERATOR);
-
-    array = allocator_traits<Allocator>::allocate(alloc, 4);
-    capacity_val = 4;
-    size_val = 0;
-
     for(; _begin != _end; ++_begin)
     {
         push_back(*_begin);

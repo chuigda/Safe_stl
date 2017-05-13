@@ -191,6 +191,8 @@ distance(InputIterator _first, InputIterator _last)
                       traits::is_random_access_iterator<InputIterator>::value);
 }
 
+using std::swap;
+
 } // namespace saber
 
 #endif // ALGORITHM_HPP
