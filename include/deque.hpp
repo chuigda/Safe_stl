@@ -103,22 +103,34 @@ public:
 
 private:
     using ptr_allocator_type =
-        typename Allocator:: template rebind<T**>::other;
+        typename Allocator:: template rebind<T*>::other;
 
     enum {subarray_size = 16};
 
-    struct
+    struct cmap
     {
-        T **ptr_array;
+        T* *ptr_array;
         size_type array_count;
     }
     center_map;
+
+    class cmap_iterator;
+
+    void add_subarray_at_begin();
+    void add_subarray_at_end();
+
+    cmap_iterator *cmap_it_begin;
+    cmap_iterator *cmap_it_end;
+    cmap_iterator *cmap_it_cap_begin;
+    cmap_iterator *cmap_it_cap_end;
 
     allocator_type alloc;
     ptr_allocator_type ptr_alloc;
 
     saber_ptr<bool> validating_ptr;
 };
+
+
 
 template <typename T, typename Allocator>
 class deque<T, Allocator>::iterator
@@ -153,17 +165,18 @@ private:
     using size_type = typename deque::size_type;
 
     iterator(deque *_get_from,
-             value_type* _subarray_ptr,
+             size_type _subarray_ptr,
              size_type _subarray_index) :
         get_from(_get_from),
         subarray_ptr(_subarray_ptr),
-        subarray_index(_subarray_index),
+        index(_subarray_index),
         validating_ptr(_get_from->validating_ptr)
     {}
 
     const deque *get_from = nullptr;
-    value_type *subarray_ptr = nullptr;
-    size_type subarray_index = 0;
+    typename deque::cmap* p_cmap;
+    size_type subarray_ptr = 0;
+    size_type index = 0;
 
     saber_ptr<bool> validating_ptr = saber_ptr<bool>(new bool(false));
 };
@@ -200,21 +213,123 @@ private:
     using size_type = typename deque::size_type;
 
     const_iterator(deque *_get_from,
-                   value_type* _subarray_ptr,
-                   size_type _subarray_index) :
+                   size_type _subarray_ptr,
+                   size_type _index) :
         get_from(_get_from),
         subarray_ptr(_subarray_ptr),
-        subarray_index(_subarray_index),
+        index(_index),
         validating_ptr(_get_from->validating_ptr)
     {}
 
     const deque *get_from = nullptr;
-    const value_type *subarray_ptr = nullptr;
-    size_type subarray_index = 0;
+    typename deque::cmap* p_cmap;
+    size_type subarray_ptr = 0;
+    size_type index = 0;
 
     saber_ptr<bool> validating_ptr = saber_ptr<bool>(new bool(false));
 };
 
+
+template <typename T, typename Allocator>
+class deque<T, Allocator>::cmap_iterator
+{
+    friend class deque;
+public:
+    using iterator_category = std::random_access_iterator_tag;
+    using value_type        = typename deque::value_type;
+    using difference_type   = typename deque::difference_type;
+    using pointer           = typename deque::pointer;
+    using reference         = typename deque::reference;
+    using const_reference   = typename deque::const_reference;
+
+    cmap_iterator(void) = default;
+    cmap_iterator(const cmap_iterator&) = default;
+    ~cmap_iterator() = default;
+
+    pointer get_actual_ptr(void);
+    const pointer get_actual_ptr(void) const;
+
+    bool operator== (const cmap_iterator& _another) const;
+    bool operator!= (const cmap_iterator& _another) const;
+
+    cmap_iterator& operator++(void);
+    cmap_iterator& operator--(void);
+
+private:
+    using size_type = typename deque::size_type;
+
+    cmap_iterator(deque *_get_from,
+                  size_type _subarray_ptr,
+                  size_type _subarray_index) :
+        get_from(_get_from),
+        p_cmap(_get_from->center_map),
+        subarray_ptr(_subarray_ptr),
+        index(_subarray_index)
+    {}
+
+    const deque *get_from = nullptr;
+    typename deque::cmap* p_cmap = nullptr;
+    size_type subarray_ptr = 0;
+    size_type index = 0;
+};
+
+
+template <typename T, typename Allocator>
+deque<T, Allocator>::deque(const Allocator& _alloc) :
+    alloc(_alloc),
+    ptr_alloc(alloc)
+{
+    center_map.ptr_array =
+            allocator_traits<ptr_allocator_type>::allocate(ptr_alloc, 2);
+    center_map.ptr_array[0] =
+            allocator_traits<allocator_type>::allocate(alloc, subarray_size);
+    center_map.ptr_array[1] =
+            allocator_traits<allocator_type>::allocate(alloc, subarray_size);
+    center_map.array_count = 2;
+
+    cmap_it_cap_begin = new iterator(this, 0, 0);
+    cmap_it_cap_end = new iterator(this, 2, 0);
+    cmap_it_begin = new iterator(this, 1, 0);
+    cmap_it_end = new iterator(this, 1, 0);
+}
+
+template <typename T, typename Allocator>
+deque<T, Allocator>::deque() :
+    deque(Allocator())
+{
+}
+
+template <typename T, typename Allocator>
+deque<T, Allocator>::~deque()
+{
+#error this part is still incomplete.
+
+    delete cmap_it_begin;
+    delete cmap_it_end;
+    delete cmap_it_cap_begin;
+    delete cmap_it_cap_end;
+    (*validating_ptr.get()) = false;
+}
+
+template <typename T, typename Allocator>
+template <typename... Args>
+void
+deque<T, Allocator>::emplace_back(Args... _args)
+{
+    if (*cmap_it_end == *cmap_it_cap_end) add_subarray_at_end();
+    construct(cmap_it_end->get_actual_ptr(), std::forward<Args>(_args)...);
+    cmap_it_end++;
+}
+
+template <typename T, typename Allocator>
+template <typename... Args>
+void
+deque<T, Allocator>::emplace_front(Args... _args)
+{
+    if (*cmap_it_begin == *cmap_it_cap_begin) add_subarray_at_begin();
+    construct(cmap_it_begin->get_actual_ptr(), std::forward<Args>(_args)...);
+    cmap_it_begin++;
+}
 
 
 template <typename T, typename Allocator>
@@ -223,7 +338,7 @@ deque<T, Allocator>::iterator::iterator(
     get_from(_const_iterator.get_from),
     subarray_ptr(const_cast<typename deque::value_type*>(
                      _const_iterator.get_from)),
-    subarray_index(_const_iterator.subarray_index),
+    index(_const_iterator.index),
     validating_ptr(_const_iterator.validating_ptr)
 {}
 
@@ -231,14 +346,14 @@ template <typename T, typename Allocator>
 typename deque<T, Allocator>::iterator::reference
 deque<T, Allocator>::iterator::operator* (void)
 {
-     return subarray_ptr[subarray_index];
+     return p_cmap->ptr_array[subarray_ptr][index];
 }
 
 template <typename T, typename Allocator>
 typename deque<T, Allocator>::iterator::const_reference
 deque<T, Allocator>::iterator::operator* (void) const
 {
-    return subarray_ptr[subarray_index];
+    return p_cmap->ptr_array[subarray_ptr][index];
 }
 
 template <typename T, typename Allocator>
@@ -247,7 +362,7 @@ deque<T, Allocator>::iterator::operator== (const iterator& _another) const
 {
     return (get_from == _another.get_from
             && subarray_ptr == _another.get_from
-            && subarray_index == _another.subarray_index);
+            && index == _another.index);
 }
 
 template <typename T, typename Allocator>
@@ -261,12 +376,12 @@ template <typename T, typename Allocator>
 typename deque<T, Allocator>::iterator&
 deque<T, Allocator>::iterator::operator++ ()
 {
-    subarray_index++;
+    index++;
 
-    if (subarray_index == subarray_size)
+    if (index == subarray_size)
     {
         subarray_ptr++;
-        subarray_index = 0;
+        index = 0;
     }
 }
 
@@ -274,12 +389,12 @@ template <typename T, typename Allocator>
 typename deque<T, Allocator>::iterator&
 deque<T, Allocator>::iterator::operator-- ()
 {
-    subarray_index--;
+    index--;
 
-    if (subarray_index < 0)
+    if (index < 0)
     {
         subarray_ptr--;
-        subarray_index = subarray_size - 1;
+        index = subarray_size - 1;
     }
 }
 
@@ -308,7 +423,7 @@ deque<T, Allocator>::const_iterator::const_iterator(
         const typename deque::iterator& _mutable_iterator) :
     get_from(_mutable_iterator.get_from),
     subarray_ptr(_mutable_iterator.subarray_ptr),
-    subarray_index(_mutable_iterator.subarray_index),
+    index(_mutable_iterator.index),
     validating_ptr(_mutable_iterator.validating_ptr)
 {
 }
@@ -317,7 +432,7 @@ template <typename T, typename Allocator>
 typename deque<T, Allocator>::const_iterator::const_reference
 deque<T, Allocator>::const_iterator::operator* () const
 {
-    return subarray_ptr[subarray_index];
+    return p_cmap->ptr_array[subarray_ptr][index];
 }
 
 template <typename T, typename Allocator>
@@ -327,7 +442,7 @@ deque<T, Allocator>::const_iterator::operator== (
 {
     return (get_from == _another.get_from
             && subarray_ptr == _another.get_from
-            && subarray_index == _another.subarray_index);
+            && index == _another.index);
 }
 
 template <typename T, typename Allocator>
@@ -342,12 +457,12 @@ template <typename T, typename Allocator>
 typename deque<T, Allocator>::const_iterator&
 deque<T, Allocator>::const_iterator::operator++ ()
 {
-    subarray_index++;
+    index++;
 
-    if (subarray_index == subarray_size)
+    if (index == subarray_size)
     {
         subarray_ptr++;
-        subarray_index = 0;
+        index = 0;
     }
 }
 
@@ -355,12 +470,12 @@ template <typename T, typename Allocator>
 typename deque<T, Allocator>::const_iterator&
 deque<T, Allocator>::const_iterator::operator-- ()
 {
-    subarray_index--;
+    index--;
 
-    if (subarray_index < 0)
+    if (index < 0)
     {
         subarray_ptr--;
-        subarray_index = subarray_size - 1;
+        index = subarray_size - 1;
     }
 }
 
