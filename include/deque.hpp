@@ -10,7 +10,7 @@
 namespace saber
 {
 
-template <typename T, typename Allocator>
+template <typename T, typename Allocator = default_allocator<T>>
 class deque
 {
 public:
@@ -88,6 +88,8 @@ public:
     void push_front(const value_type& _value);
     void push_back(value_type&& _value);
     void push_front(value_type&& _value);
+    void pop_front();
+    void pop_back();
 
     iterator insert(const_iterator _pos, const value_type& _value);
     iterator insert(const_iterator _pos, value_type&& _value);
@@ -99,17 +101,19 @@ public:
     iterator erase(const_iterator _position);
     iterator erase(const_iterator _first, const_iterator _last);
 
+    void clear();
     void swap(deque& _another);
 
 private:
+    using subarray_type = T*;
     using ptr_allocator_type =
-        typename Allocator:: template rebind<T*>::other;
+        typename Allocator:: template rebind<subarray_type>::other;
 
     enum {subarray_size = 16};
 
     struct cmap
     {
-        T* *ptr_array;
+        subarray_type *ptr_array;
         size_type array_count;
     }
     center_map;
@@ -161,6 +165,8 @@ public:
     iterator operator++ (int);
     iterator operator-- (int);
 
+    difference_type operator- (const iterator& _another);
+
 private:
     using cmap_iterator = typename deque::cmap_iterator;
     cmap_iterator cmap_it;
@@ -198,6 +204,8 @@ public:
     const_iterator operator++ (int);
     const_iterator operator-- (int);
 
+    difference_type operator- (const const_iterator& _another);
+
 private:
     using cmap_iterator = typename deque::cmap_iterator;
     cmap_iterator cmap_it;
@@ -233,6 +241,8 @@ public:
     cmap_iterator& operator++(void);
     cmap_iterator& operator--(void);
 
+    difference_type operator- (const cmap_iterator& _another);
+
 private:
     using size_type     = typename deque::size_type;
     using subarray_type = typename deque::subarray_type;
@@ -242,7 +252,7 @@ private:
                   subarray_type* _subarray_ptr,
                   size_type _subarray_index) :
         get_from(_get_from),
-        p_cmap(_get_from->center_map),
+        p_cmap(&(_get_from->center_map)),
         subarray_ptr(_subarray_ptr),
         index(_subarray_index)
     {}
@@ -286,7 +296,7 @@ deque<T, Allocator>::deque() :
 template <typename T, typename Allocator>
 deque<T, Allocator>::~deque()
 {
-#error this part is still incomplete.
+    erase(begin(), end());
 
     delete cmap_it_begin;
     delete cmap_it_end;
@@ -296,12 +306,41 @@ deque<T, Allocator>::~deque()
 }
 
 template <typename T, typename Allocator>
+typename deque<T, Allocator>::iterator
+deque<T, Allocator>::begin() noexcept
+{
+    return iterator(*cmap_it_begin);
+}
+
+template <typename T, typename Allocator>
+typename deque<T, Allocator>::iterator
+deque<T, Allocator>::end() noexcept
+{
+    return iterator(*cmap_it_end);
+}
+
+template <typename T, typename Allocator>
+typename deque<T, Allocator>::const_iterator
+deque<T, Allocator>::cbegin() const noexcept
+{
+    return const_iterator(*cmap_it_begin);
+}
+
+template <typename T, typename Allocator>
+typename deque<T, Allocator>::const_iterator
+deque<T, Allocator>::cend() const noexcept
+{
+    return const_iterator(*cmap_it_end);
+}
+
+template <typename T, typename Allocator>
 template <typename... Args>
 void
 deque<T, Allocator>::emplace_back(Args... _args)
 {
     if (*cmap_it_end == *cmap_it_cap_end) add_subarray_at_end();
-    construct(std::addressof(cmap_it_end), std::forward<Args>(_args)...);
+    construct(std::addressof(cmap_it_end->operator*()),
+              std::forward<Args>(_args)...);
     cmap_it_end++;
 }
 
@@ -313,6 +352,129 @@ deque<T, Allocator>::emplace_front(Args... _args)
     if (*cmap_it_begin == *cmap_it_cap_begin) add_subarray_at_begin();
     construct(std::addressof(*cmap_it_begin), std::forward<Args>(_args)...);
     cmap_it_begin++;
+}
+
+template <typename T, typename Allocator>
+template <typename... Args>
+void
+deque<T, Allocator>::emplace(const_iterator _pos, Args... _args)
+{
+    if (_pos - cbegin() < cend() - _pos)
+    {
+        emplace_front(front());
+        copy(cbegin() + 1, _pos, cbegin());
+        destroy_at(std::addressof(*_pos));
+    }
+    else
+    {
+        emplace_back(back());
+        reverse_copy(_pos, cend(), _pos+1);
+    }
+    construct(std::addressof(*_pos), std::forward<Args>(_args)...);
+}
+
+template <typename T, typename Allocator>
+void
+deque<T, Allocator>::push_back(const value_type &_value)
+{
+    emplace_back(_value);
+}
+
+template <typename T, typename Allocator>
+void
+deque<T, Allocator>::push_front(const value_type &_value)
+{
+    emplace_front(_value);
+}
+
+template <typename T, typename Allocator>
+void
+deque<T, Allocator>::push_back(value_type &&_value)
+{
+    emplace_back(std::move(_value));
+}
+
+template <typename T, typename Allocator>
+void
+deque<T, Allocator>::push_front(value_type &&_value)
+{
+    emplace_front(std::move(_value));
+}
+
+template <typename T, typename Allocator>
+void
+deque<T, Allocator>::pop_back()
+{
+    destroy_at(std::addressof(*end()));
+    cmap_it_end--;
+}
+
+template <typename T, typename Allocator>
+void
+deque<T, Allocator>::pop_front()
+{
+    destroy_at(std::addressof(*begin()));
+    cmap_it_begin++;
+}
+
+template <typename T, typename Allocator>
+typename deque<T, Allocator>::iterator
+deque<T, Allocator>::insert(const_iterator _pos, const value_type &_value)
+{
+    if (_pos == cend())
+    {
+        emplace_back(_value);
+        return end();
+    }
+    else if (_pos == cbegin())
+    {
+        emplace_front(_value);
+        return begin();
+    }
+    else
+    {
+        emplace(_pos, _value);
+        return iterator(_pos);
+    }
+}
+
+template <typename T, typename Allocator>
+typename deque<T, Allocator>::iterator
+deque<T, Allocator>::erase(const_iterator _position)
+{
+    erase(_position, _position+1);
+}
+
+template <typename T, typename Allocator>
+typename deque<T, Allocator>::iterator
+deque<T, Allocator>::erase(const_iterator _first, const_iterator _last)
+{
+    if ( (_first - cbegin()) < (cend() - _last) )
+    {
+        copy(_last, cend(), iterator(_first));
+        destroy(iterator(_last), end());
+        cmap_it_end->operator= (_last.cmap_it);
+    }
+    else
+    {
+        reverse_copy(cbegin(), _first, iterator(_last));
+        destroy(begin(), iterator(_first));
+        cmap_it_begin->operator= (_first.cmap_it);
+    }
+}
+
+template <typename T, typename Allocator>
+void
+deque<T, Allocator>::add_subarray_at_begin()
+{
+#error incomplete part
+}
+
+template <typename T, typename Allocator>
+void
+deque<T, Allocator>::add_subarray_at_end()
+{
+#error incomplete part
 }
 
 
@@ -356,7 +518,7 @@ template <typename T, typename Allocator>
 typename deque<T, Allocator>::iterator&
 deque<T, Allocator>::iterator::operator++ ()
 {
-    cmap_it++;
+    ++cmap_it;
     return *this;
 }
 
@@ -364,7 +526,7 @@ template <typename T, typename Allocator>
 typename deque<T, Allocator>::iterator&
 deque<T, Allocator>::iterator::operator-- ()
 {
-    cmap_it--;
+    --cmap_it;
     return *this;
 }
 
@@ -384,6 +546,13 @@ deque<T, Allocator>::iterator::operator-- (int)
     iterator temp = *this;
     operator-- ();
     return temp;
+}
+
+template <typename T, typename Allocator>
+typename deque<T, Allocator>::iterator::difference_type
+deque<T, Allocator>::iterator::operator- (const iterator& _another)
+{
+    return cmap_it - _another.cmap_it;
 }
 
 
@@ -420,7 +589,7 @@ template <typename T, typename Allocator>
 typename deque<T, Allocator>::const_iterator&
 deque<T, Allocator>::const_iterator::operator++ ()
 {
-    cmap_it++;
+    ++cmap_it;
     return *this;
 }
 
@@ -428,7 +597,7 @@ template <typename T, typename Allocator>
 typename deque<T, Allocator>::const_iterator&
 deque<T, Allocator>::const_iterator::operator-- ()
 {
-    cmap_it--;
+    --cmap_it;
     return *this;
 }
 
@@ -448,6 +617,13 @@ deque<T, Allocator>::const_iterator::operator-- (int)
     const_iterator temp = *this;
     operator-- ();
     return temp;
+}
+
+template <typename T, typename Allocator>
+typename deque<T, Allocator>::const_iterator::difference_type
+deque<T, Allocator>::const_iterator::operator- (const const_iterator& _another)
+{
+    return cmap_it - _another.cmap_it;
 }
 
 
@@ -509,6 +685,16 @@ deque<T, Allocator>::cmap_iterator::operator-- ()
         subarray_ptr--;
     }
     return *this;
+}
+
+template <typename T, typename Allocator>
+typename deque<T, Allocator>::cmap_iterator::difference_type
+deque<T, Allocator>::cmap_iterator::operator- (const cmap_iterator& _another)
+{
+    // according to EA-STL, this is a fairly clever algorithm since HP STL.
+    return subarray_size * (subarray_ptr - _another.subarray_ptr)
+           + (index)
+           + (subarray_size - _another.index);
 }
 
 } // namespace saber
