@@ -31,7 +31,8 @@ public:
     deque();
     explicit deque(const Allocator& _alloc);
     explicit deque(size_type _n);
-    deque(size_type _n, const T& _value, const Allocator& _alloc = Allocator());
+    deque(size_type _n, const T& _value,
+          const Allocator& _alloc = Allocator());
     deque(const deque& _another);
     deque(deque&& _another);
     deque(const deque& _another, const Allocator& _alloc);
@@ -123,10 +124,12 @@ private:
     void add_subarray_at_begin();
     void add_subarray_at_end();
 
-    cmap_iterator *cmap_it_begin;
-    cmap_iterator *cmap_it_end;
-    cmap_iterator *cmap_it_cap_begin;
-    cmap_iterator *cmap_it_cap_end;
+    subarray_type create_subarray();
+
+    cmap_iterator *cmap_it_begin = nullptr;
+    cmap_iterator *cmap_it_end = nullptr;
+    cmap_iterator *cmap_it_cap_begin = nullptr;
+    cmap_iterator *cmap_it_cap_end = nullptr;
 
     allocator_type alloc;
     ptr_allocator_type ptr_alloc;
@@ -249,7 +252,7 @@ private:
     using cmap          = typename deque::cmap;
 
     cmap_iterator(const deque *_get_from,
-                  subarray_type* _subarray_ptr,
+                  size_type _subarray_ptr,
                   size_type _subarray_index) :
         get_from(_get_from),
         p_cmap(&(_get_from->center_map)),
@@ -259,7 +262,7 @@ private:
 
     const deque *get_from = nullptr;
     const cmap *p_cmap = nullptr;
-    subarray_type* subarray_ptr = nullptr;
+    size_type subarray_ptr = 0;
     size_type index = 0;
 };
 
@@ -267,24 +270,19 @@ private:
 template <typename T, typename Allocator>
 deque<T, Allocator>::deque(const Allocator& _alloc) :
     alloc(_alloc),
-    ptr_alloc(alloc)
+    ptr_alloc(alloc),
+    validating_ptr(new bool(true))
 {
     center_map.ptr_array =
             allocator_traits<ptr_allocator_type>::allocate(ptr_alloc, 2);
-    center_map.ptr_array[0] =
-            allocator_traits<allocator_type>::allocate(alloc, subarray_size);
-    center_map.ptr_array[1] =
-            allocator_traits<allocator_type>::allocate(alloc, subarray_size);
+    center_map.ptr_array[0] = create_subarray();
+    center_map.ptr_array[1] = create_subarray();
     center_map.array_count = 2;
 
-    cmap_it_cap_begin =
-            new cmap_iterator(this, center_map.ptr_array+0, 0);
-    cmap_it_cap_end =
-            new cmap_iterator(this, center_map.ptr_array+1, subarray_size-1);
-    cmap_it_begin =
-            new cmap_iterator(this, center_map.ptr_array+1, 0);
-    cmap_it_end =
-            new cmap_iterator(this, center_map.ptr_array+1, 0);
+    cmap_it_cap_begin = new cmap_iterator(this, 0, 0);
+    cmap_it_cap_end = new cmap_iterator(this, 1, subarray_size-1);
+    cmap_it_begin = new cmap_iterator(this, 1, 0);
+    cmap_it_end = new cmap_iterator(this, 1, 0);
 }
 
 template <typename T, typename Allocator>
@@ -296,7 +294,15 @@ deque<T, Allocator>::deque() :
 template <typename T, typename Allocator>
 deque<T, Allocator>::~deque()
 {
-    erase(begin(), end());
+    erase(cbegin(), cend());
+
+    for (size_type i = 0; i < center_map.array_count; ++i)
+    {
+        allocator_traits<allocator_type>::deallocate(
+                    alloc, center_map.ptr_array[i], subarray_size);
+    }
+    allocator_traits<ptr_allocator_type>::deallocate(
+                ptr_alloc, center_map.ptr_array, center_map.array_count);
 
     delete cmap_it_begin;
     delete cmap_it_end;
@@ -341,7 +347,7 @@ deque<T, Allocator>::emplace_back(Args... _args)
     if (*cmap_it_end == *cmap_it_cap_end) add_subarray_at_end();
     construct(std::addressof(cmap_it_end->operator*()),
               std::forward<Args>(_args)...);
-    cmap_it_end++;
+    cmap_it_end->operator++();
 }
 
 template <typename T, typename Allocator>
@@ -351,7 +357,7 @@ deque<T, Allocator>::emplace_front(Args... _args)
 {
     if (*cmap_it_begin == *cmap_it_cap_begin) add_subarray_at_begin();
     construct(std::addressof(*cmap_it_begin), std::forward<Args>(_args)...);
-    cmap_it_begin++;
+    cmap_it_begin->operator--();
 }
 
 template <typename T, typename Allocator>
@@ -449,17 +455,21 @@ template <typename T, typename Allocator>
 typename deque<T, Allocator>::iterator
 deque<T, Allocator>::erase(const_iterator _first, const_iterator _last)
 {
-    if ( (_first - cbegin()) < (cend() - _last) )
+    if ( (_first - cbegin()) < (_last - cend()) )
     {
-        copy(_last, cend(), iterator(_first));
-        destroy(iterator(_last), end());
-        cmap_it_end->operator= (_last.cmap_it);
+        iterator begin_of_storage =
+                reverse_copy(cbegin(), _first, iterator(_last));
+        destroy(begin(), begin_of_storage);
+        cmap_it_begin->operator= (begin_of_storage.cmap_it);
+        return begin_of_storage;
     }
     else
     {
-        reverse_copy(cbegin(), _first, iterator(_last));
-        destroy(begin(), iterator(_first));
-        cmap_it_begin->operator= (_first.cmap_it);
+        iterator end_of_storage =
+                copy(_last, cend(), iterator(_first));
+        destroy(end_of_storage, end());
+        cmap_it_end->operator= (end_of_storage.cmap_it);
+        return end_of_storage;
     }
 }
 
@@ -467,15 +477,54 @@ template <typename T, typename Allocator>
 void
 deque<T, Allocator>::add_subarray_at_begin()
 {
-#error incomplete part
+    subarray_type *new_ptr_array =
+            allocator_traits<ptr_allocator_type>::allocate(
+                ptr_alloc, center_map.array_count+1);
+    new_ptr_array[0] = create_subarray();
+    uninitialized_copy_n(center_map.ptr_array, center_map.array_count,
+                         new_ptr_array+1);
+
+    allocator_traits<ptr_allocator_type>::deallocate(ptr_alloc,
+                                                     center_map.ptr_array,
+                                                     center_map.array_count);
+    center_map.ptr_array = new_ptr_array;
+    center_map.array_count++;
+
+    cmap_it_begin->subarray_ptr++;
+    cmap_it_end->subarray_ptr++;
+    cmap_it_cap_begin;
+    cmap_it_cap_end->subaray_ptr++;
 }
 
 template <typename T, typename Allocator>
 void
 deque<T, Allocator>::add_subarray_at_end()
 {
-#error incomplete part
+    subarray_type *new_ptr_array =
+            allocator_traits<ptr_allocator_type>::allocate(
+                ptr_alloc, center_map.array_count+1);
+    new_ptr_array[center_map.array_count] = create_subarray();
+    uninitialized_copy_n(center_map.ptr_array, center_map.array_count,
+                         new_ptr_array);
+
+    allocator_traits<ptr_allocator_type>::deallocate(ptr_alloc,
+                                                     center_map.ptr_array,
+                                                     center_map.array_count);
+    center_map.ptr_array = new_ptr_array;
+    center_map.array_count++;
+
+    cmap_it_cap_end->subarray_ptr++;
 }
+
+template <typename T, typename Allocator>
+typename deque<T, Allocator>::subarray_type
+deque<T, Allocator>::create_subarray()
+{
+    subarray_type subarray =
+            allocator_traits<allocator_type>::allocate(alloc, subarray_size);
+    return subarray;
+}
+
 
 
 
@@ -632,14 +681,14 @@ template <typename T, typename Allocator>
 typename deque<T, Allocator>::cmap_iterator::reference
 deque<T, Allocator>::cmap_iterator::operator* ()
 {
-    return subarray_ptr[0][index];
+    return p_cmap->ptr_array[subarray_ptr][index];
 }
 
 template <typename T, typename Allocator>
 typename deque<T, Allocator>::cmap_iterator::const_reference
 deque<T, Allocator>::cmap_iterator::operator* () const
 {
-    return subarray_ptr[0][index];
+    return p_cmap->ptr_array[subarray_ptr][index];
 }
 
 template <typename T, typename Allocator>
