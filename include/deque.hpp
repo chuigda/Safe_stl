@@ -528,6 +528,34 @@ deque<T, Allocator>::rend() noexcept
 }
 
 template <typename T, typename Allocator>
+typename deque<T, Allocator>::const_reverse_iterator
+deque<T, Allocator>::rbegin() const noexcept
+{
+    return crbegin();
+}
+
+template <typename T, typename Allocator>
+typename deque<T, Allocator>::const_reverse_iterator
+deque<T, Allocator>::rend() const noexcept
+{
+    return crend();
+}
+
+template <typename T, typename Allocator>
+typename deque<T, Allocator>::const_reverse_iterator
+deque<T, Allocator>::crbegin() const noexcept
+{
+    return reverse_iterator(end());
+}
+
+template <typename T, typename Allocator>
+typename deque<T, Allocator>::const_reverse_iterator
+deque<T, Allocator>::crend() const noexcept
+{
+    return reverse_iterator(begin());
+}
+
+template <typename T, typename Allocator>
 typename deque<T, Allocator>::size_type
 deque<T, Allocator>::size() const noexcept
 {
