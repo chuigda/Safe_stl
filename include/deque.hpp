@@ -6,6 +6,7 @@
 #include "iterator.hpp"
 #include "memory.hpp"
 #include "algorithm.hpp"
+#include "excalibur.hpp"
 
 namespace saber
 {
@@ -37,7 +38,11 @@ public:
     deque(deque&& _another);
     deque(const deque& _another, const Allocator& _alloc);
     deque(deque&& _another, const Allocator& _alloc);
-    deque(initializer_list<T> _ilist, const Allocator& _alloc);
+    deque(initializer_list<T> _ilist,
+          const Allocator& _alloc = Allocator());
+    template <typename InputIterator>
+    deque(InputIterator _first, InputIterator _last,
+          const Allocator& _alloc = Allocator());
     ~deque();
 
     deque& operator= (const deque& _another);
@@ -94,9 +99,11 @@ public:
 
     iterator insert(const_iterator _pos, const value_type& _value);
     iterator insert(const_iterator _pos, value_type&& _value);
-    iterator insert(const_iterator _pos, size_type _n, const value_type& _value);
+    iterator insert(const_iterator _pos,
+                    size_type _n, const value_type& _value);
     template <typename InputIterator>
-    iterator insert(const_iterator _pos, InputIterator _first, InputIterator _last);
+    iterator insert(const_iterator _pos,
+                    InputIterator _first, InputIterator _last);
     iterator insert(const_iterator _pos, initializer_list<T> _ilist);
 
     iterator erase(const_iterator _position);
@@ -137,7 +144,9 @@ private:
     saber_ptr<bool> validating_ptr;
 };
 
-
+//////////////////////////////////////////////////////////////////////////////
+// class iterator                                                           //
+//////////////////////////////////////////////////////////////////////////////
 
 template <typename T, typename Allocator>
 class deque<T, Allocator>::iterator
@@ -160,13 +169,26 @@ public:
     reference operator* (void);
     const_reference operator* (void) const;
 
+    reference operator[] (difference_type _diff);
+    const_reference operator[] (difference_type _diff) const;
+
     bool operator== (const iterator& _another) const;
     bool operator!= (const iterator& _another) const;
+
+    bool operator< (const iterator& _another) const;
+    bool operator> (const iterator& _another) const;
+    bool operator<= (const iterator& _another) const;
+    bool operator>= (const iterator& _another) const;
 
     iterator& operator++ (void);
     iterator& operator-- (void);
     iterator operator++ (int);
     iterator operator-- (int);
+
+    iterator& operator+= (difference_type _diff);
+    iterator& operator-= (difference_type _diff);
+    iterator operator+ (difference_type _diff);
+    iterator operator- (difference_type _diff);
 
     difference_type operator- (const iterator& _another);
 
@@ -178,6 +200,10 @@ private:
         cmap_it(cmap_it)
     {}
 };
+
+//////////////////////////////////////////////////////////////////////////////
+// class const_iterator                                                     //
+//////////////////////////////////////////////////////////////////////////////
 
 template <typename T, typename Allocator>
 class deque<T, Allocator>::const_iterator
@@ -198,9 +224,20 @@ public:
     ~const_iterator() = default;
 
     const_reference operator* (void) const;
+    const_reference operator[] (difference_type _diff) const;
 
     bool operator== (const const_iterator& _another) const;
     bool operator!= (const const_iterator& _another) const;
+
+    bool operator< (const const_iterator& _another) const;
+    bool operator> (const const_iterator& _another) const;
+    bool operator<= (const const_iterator& _another) const;
+    bool operator>= (const const_iterator& _another) const;
+
+    const_iterator& operator+= (difference_type _diff);
+    const_iterator& operator-= (difference_type _diff);
+    const_iterator operator+ (difference_type _diff);
+    const_iterator operator- (difference_type _diff);
 
     const_iterator& operator++ (void);
     const_iterator& operator-- (void);
@@ -218,6 +255,9 @@ private:
     {}
 };
 
+//////////////////////////////////////////////////////////////////////////////
+// class cmap_iterator                                                      //
+//////////////////////////////////////////////////////////////////////////////
 
 template <typename T, typename Allocator>
 class deque<T, Allocator>::cmap_iterator
@@ -240,10 +280,12 @@ public:
 
     bool operator== (const cmap_iterator& _another) const;
     bool operator!= (const cmap_iterator& _another) const;
+    bool operator< (const cmap_iterator& _another) const;
 
     cmap_iterator& operator++(void);
     cmap_iterator& operator--(void);
 
+    cmap_iterator& operator+= (difference_type _diff);
     difference_type operator- (const cmap_iterator& _another);
 
 private:
@@ -260,12 +302,16 @@ private:
         index(_subarray_index)
     {}
 
+
     const deque *get_from = nullptr;
     const cmap *p_cmap = nullptr;
     size_type subarray_ptr = 0;
-    size_type index = 0;
+    difference_type index = 0;
 };
 
+//////////////////////////////////////////////////////////////////////////////
+// Implementations of functions                                             //
+/// //////////////////////////////////////////////////////////////////////////
 
 template <typename T, typename Allocator>
 deque<T, Allocator>::deque(const Allocator& _alloc) :
@@ -289,6 +335,25 @@ template <typename T, typename Allocator>
 deque<T, Allocator>::deque() :
     deque(Allocator())
 {
+}
+
+template <typename T, typename Allocator>
+deque<T, Allocator>::deque(initializer_list<T> _ilist,
+                           const Allocator &_alloc) :
+    deque(_ilist.begin(), _ilist.end(), _alloc)
+{
+}
+
+template <typename T, typename Allocator>
+template <typename InputIterator>
+deque<T, Allocator>::deque(InputIterator _first, InputIterator _last,
+                           const Allocator& _alloc) :
+    deque(_alloc)
+{
+    for (; _first != _last; ++_first)
+    {
+        push_back(*_first);
+    }
 }
 
 template <typename T, typename Allocator>
@@ -340,6 +405,83 @@ deque<T, Allocator>::cend() const noexcept
 }
 
 template <typename T, typename Allocator>
+typename deque<T, Allocator>::size_type
+deque<T, Allocator>::size() const noexcept
+{
+    return (cend() - cbegin());
+}
+
+template <typename T, typename Allocator>
+typename deque<T, Allocator>::size_type
+deque<T, Allocator>::max_size() const noexcept
+{
+    return std::numeric_limits<size_type>::max();
+}
+
+template <typename T, typename Allocator>
+bool
+deque<T, Allocator>::empty() const noexcept
+{
+    return (cend() == cbegin());
+}
+
+template <typename T, typename Allocator>
+typename deque<T, Allocator>::reference
+deque<T, Allocator>::at(size_type _n)
+{
+    return *(begin() + _n);
+}
+
+template <typename T, typename Allocator>
+typename deque<T, Allocator>::const_reference
+deque<T, Allocator>::at(size_type _n) const
+{
+    return *(cbegin() + _n);
+}
+
+template <typename T, typename Allocator>
+typename deque<T, Allocator>::reference
+deque<T, Allocator>::operator[] (size_type _n)
+{
+    return *(begin() + _n);
+}
+
+template <typename T, typename Allocator>
+typename deque<T, Allocator>::const_reference
+deque<T, Allocator>::operator[] (size_type _n) const
+{
+    return *(cbegin() + _n);
+}
+
+template <typename T, typename Allocator>
+typename deque<T, Allocator>::reference
+deque<T, Allocator>::front()
+{
+    return *begin();
+}
+
+template <typename T, typename Allocator>
+typename deque<T, Allocator>::reference
+deque<T, Allocator>::back()
+{
+    return *(end()-1);
+}
+
+template <typename T, typename Allocator>
+typename deque<T, Allocator>::const_reference
+deque<T, Allocator>::front() const
+{
+    return *cbegin();
+}
+
+template <typename T, typename Allocator>
+typename deque<T, Allocator>::const_reference
+deque<T, Allocator>::back() const
+{
+    return *(cend()-1);
+}
+
+template <typename T, typename Allocator>
 template <typename... Args>
 void
 deque<T, Allocator>::emplace_back(Args... _args)
@@ -356,7 +498,10 @@ void
 deque<T, Allocator>::emplace_front(Args... _args)
 {
     if (*cmap_it_begin == *cmap_it_cap_begin) add_subarray_at_begin();
-    construct(std::addressof(*cmap_it_begin), std::forward<Args>(_args)...);
+    cmap_iterator by_the_way = *cmap_it_begin;
+    --by_the_way;
+    construct(std::addressof(*by_the_way),
+              std::forward<Args>(_args)...);
     cmap_it_begin->operator--();
 }
 
@@ -365,18 +510,23 @@ template <typename... Args>
 void
 deque<T, Allocator>::emplace(const_iterator _pos, Args... _args)
 {
+    difference_type _pos_diff = _pos - cbegin();
+
     if (_pos - cbegin() < cend() - _pos)
     {
         emplace_front(front());
-        copy(cbegin() + 1, _pos, cbegin());
-        destroy_at(std::addressof(*_pos));
+        _pos = const_iterator(cbegin() + _pos_diff);
+        copy(cbegin()+1, _pos, begin());
     }
     else
     {
         emplace_back(back());
-        reverse_copy(_pos, cend(), _pos+1);
+        _pos = const_iterator(cbegin() + _pos_diff);
+        reverse_copy(_pos, cend(), iterator(_pos+1));
     }
-    construct(std::addressof(*_pos), std::forward<Args>(_args)...);
+
+    destroy_at(std::addressof(*iterator(_pos)));
+    construct(std::addressof(*iterator(_pos)), std::forward<Args>(_args)...);
 }
 
 template <typename T, typename Allocator>
@@ -492,8 +642,7 @@ deque<T, Allocator>::add_subarray_at_begin()
 
     cmap_it_begin->subarray_ptr++;
     cmap_it_end->subarray_ptr++;
-    cmap_it_cap_begin;
-    cmap_it_cap_end->subaray_ptr++;
+    cmap_it_cap_end->subarray_ptr++;
 }
 
 template <typename T, typename Allocator>
@@ -550,6 +699,20 @@ deque<T, Allocator>::iterator::operator* () const
 }
 
 template <typename T, typename Allocator>
+typename deque<T, Allocator>::iterator::reference
+deque<T, Allocator>::iterator::operator[] (difference_type _diff)
+{
+    return *(*this + _diff);
+}
+
+template <typename T, typename Allocator>
+typename deque<T, Allocator>::iterator::const_reference
+deque<T, Allocator>::iterator::operator[] (difference_type _diff) const
+{
+    return *(*this + _diff);
+}
+
+template <typename T, typename Allocator>
 bool
 deque<T, Allocator>::iterator::operator== (const iterator& _another) const
 {
@@ -561,6 +724,34 @@ bool
 deque<T, Allocator>::iterator::operator!= (const iterator& _another) const
 {
     return cmap_it != _another.cmap_it;
+}
+
+template <typename T, typename Allocator>
+bool
+deque<T, Allocator>::iterator::operator< (const iterator& _another) const
+{
+    return cmap_it < _another.cmap_it;
+}
+
+template <typename T, typename Allocator>
+bool
+deque<T, Allocator>::iterator::operator> (const iterator& _another) const
+{
+    return !operator< (_another);
+}
+
+template <typename T, typename Allocator>
+bool
+deque<T, Allocator>::iterator::operator<= (const iterator& _another) const
+{
+    return !operator>(_another);
+}
+
+template <typename T, typename Allocator>
+bool
+deque<T, Allocator>::iterator::operator>= (const iterator& _another) const
+{
+    return !operator<(_another);
 }
 
 template <typename T, typename Allocator>
@@ -598,6 +789,40 @@ deque<T, Allocator>::iterator::operator-- (int)
 }
 
 template <typename T, typename Allocator>
+typename deque<T, Allocator>::iterator&
+deque<T, Allocator>::iterator::operator+= (difference_type _diff)
+{
+    cmap_it += _diff;
+    return *this;
+}
+
+template <typename T, typename Allocator>
+typename deque<T, Allocator>::iterator&
+deque<T, Allocator>::iterator::operator-= (difference_type _diff)
+{
+    cmap_it += -1* _diff;
+    return *this;
+}
+
+template <typename T, typename Allocator>
+typename deque<T, Allocator>::iterator
+deque<T, Allocator>::iterator::operator+ (difference_type _diff)
+{
+    iterator ret = *this;
+    ret += _diff;
+    return ret;
+}
+
+template <typename T, typename Allocator>
+typename deque<T, Allocator>::iterator
+deque<T, Allocator>::iterator::operator- (difference_type _diff)
+{
+    iterator ret = *this;
+    ret -= _diff;
+    return ret;
+}
+
+template <typename T, typename Allocator>
 typename deque<T, Allocator>::iterator::difference_type
 deque<T, Allocator>::iterator::operator- (const iterator& _another)
 {
@@ -622,16 +847,50 @@ deque<T, Allocator>::const_iterator::operator* () const
 
 template <typename T, typename Allocator>
 bool
-deque<T, Allocator>::const_iterator::operator== (const const_iterator& _another) const
+deque<T, Allocator>::const_iterator::operator== (
+        const const_iterator& _another) const
 {
     return cmap_it == _another.cmap_it;
 }
 
 template <typename T, typename Allocator>
 bool
-deque<T, Allocator>::const_iterator::operator!= (const const_iterator& _another) const
+deque<T, Allocator>::const_iterator::operator!= (
+        const const_iterator& _another) const
 {
     return cmap_it != _another.cmap_it;
+}
+
+template <typename T, typename Allocator>
+bool
+deque<T, Allocator>::const_iterator::operator< (
+        const const_iterator& _another) const
+{
+    return cmap_it < _another.cmap_it;
+}
+
+template <typename T, typename Allocator>
+bool
+deque<T, Allocator>::const_iterator::operator> (
+        const const_iterator& _another) const
+{
+    return !operator< (_another);
+}
+
+template <typename T, typename Allocator>
+bool
+deque<T, Allocator>::const_iterator::operator<= (
+        const const_iterator& _another) const
+{
+    return !operator>(_another);
+}
+
+template <typename T, typename Allocator>
+bool
+deque<T, Allocator>::const_iterator::operator>= (
+        const const_iterator& _another) const
+{
+    return !operator<(_another);
 }
 
 template <typename T, typename Allocator>
@@ -666,6 +925,40 @@ deque<T, Allocator>::const_iterator::operator-- (int)
     const_iterator temp = *this;
     operator-- ();
     return temp;
+}
+
+template <typename T, typename Allocator>
+typename deque<T, Allocator>::const_iterator&
+deque<T, Allocator>::const_iterator::operator+= (difference_type _diff)
+{
+    cmap_it += _diff;
+    return *this;
+}
+
+template <typename T, typename Allocator>
+typename deque<T, Allocator>::const_iterator&
+deque<T, Allocator>::const_iterator::operator-= (difference_type _diff)
+{
+    cmap_it += -1 * _diff;
+    return *this;
+}
+
+template <typename T, typename Allocator>
+typename deque<T, Allocator>::const_iterator
+deque<T, Allocator>::const_iterator::operator+ (difference_type _diff)
+{
+    const_iterator ret = *this;
+    ret += _diff;
+    return ret;
+}
+
+template <typename T, typename Allocator>
+typename deque<T, Allocator>::const_iterator
+deque<T, Allocator>::const_iterator::operator- (difference_type _diff)
+{
+    const_iterator ret = *this;
+    ret -= _diff;
+    return ret;
 }
 
 template <typename T, typename Allocator>
@@ -711,6 +1004,26 @@ deque<T, Allocator>::cmap_iterator::operator!= (
 }
 
 template <typename T, typename Allocator>
+bool
+deque<T, Allocator>::cmap_iterator::operator< (
+        const cmap_iterator& _another) const
+{
+    if (subarray_ptr < _another.subarray_ptr)
+    {
+        return true;
+    }
+    else if (subarray_ptr == _another.subarray_ptr)
+    {
+        if (index < _another.index)
+        {
+            return true;
+        }
+    }
+
+    return false;
+}
+
+template <typename T, typename Allocator>
 typename deque<T, Allocator>::cmap_iterator&
 deque<T, Allocator>::cmap_iterator::operator++ ()
 {
@@ -737,11 +1050,21 @@ deque<T, Allocator>::cmap_iterator::operator-- ()
 }
 
 template <typename T, typename Allocator>
+typename deque<T, Allocator>::cmap_iterator&
+deque<T, Allocator>::cmap_iterator::operator+= (difference_type _diff)
+{
+    subarray_ptr += (index + _diff) / subarray_size;
+    index = (index + _diff) % subarray_size;
+    return *this;
+}
+
+template <typename T, typename Allocator>
 typename deque<T, Allocator>::cmap_iterator::difference_type
 deque<T, Allocator>::cmap_iterator::operator- (const cmap_iterator& _another)
 {
     // according to EA-STL, this is a fairly clever algorithm since HP STL.
-    return subarray_size * (subarray_ptr - _another.subarray_ptr)
+    // Fucking EA-STL. I may never trust in it any more.
+    return subarray_size * (subarray_ptr - _another.subarray_ptr - 1)
            + (index)
            + (subarray_size - _another.index);
 }
