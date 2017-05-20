@@ -31,7 +31,8 @@ public:
 
     deque();
     explicit deque(const Allocator& _alloc);
-    explicit deque(size_type _n);
+    explicit deque(size_type _n,
+                   const Allocator& _alloc = Allocator());
     deque(size_type _n, const T& _value,
           const Allocator& _alloc = Allocator());
     deque(const deque& _another);
@@ -98,7 +99,7 @@ public:
     void pop_back();
 
     iterator insert(const_iterator _pos, const value_type& _value);
-    iterator insert(const_iterator _pos, value_type&& _value);
+    // iterator insert(const_iterator _pos, value_type&& _value);
     iterator insert(const_iterator _pos,
                     size_type _n, const value_type& _value);
     template <typename InputIterator>
@@ -338,6 +339,49 @@ deque<T, Allocator>::deque() :
 }
 
 template <typename T, typename Allocator>
+deque<T, Allocator>::deque(size_type _n, const Allocator& _alloc) :
+    deque(_n, value_type(), _alloc)
+{
+}
+
+template <typename T, typename Allocator>
+deque<T, Allocator>::deque(size_type _n, const T &_value,
+                           const Allocator &_alloc) :
+    deque(_alloc)
+{
+    for (size_type i = 0; i < _n; i++)
+    {
+        push_back(_value);
+    }
+}
+
+template <typename T, typename Allocator>
+deque<T, Allocator>::deque(const deque &_another) :
+    deque(_another, _another.alloc)
+{
+}
+
+template <typename T, typename Allocator>
+deque<T, Allocator>::deque(const deque &_another, const Allocator &_alloc) :
+    deque(_another.cbegin(), _another.cend(), _alloc)
+{
+}
+
+template <typename T, typename Allocator>
+deque<T, Allocator>::deque(deque &&_another) :
+    deque(_another, _another.alloc)
+
+{
+}
+
+template <typename T, typename Allocator>
+deque<T, Allocator>::deque(deque &&_another, const Allocator &_alloc) :
+    deque(_alloc)
+{
+    swap(_another);
+}
+
+template <typename T, typename Allocator>
 deque<T, Allocator>::deque(initializer_list<T> _ilist,
                            const Allocator &_alloc) :
     deque(_ilist.begin(), _ilist.end(), _alloc)
@@ -359,7 +403,7 @@ deque<T, Allocator>::deque(InputIterator _first, InputIterator _last,
 template <typename T, typename Allocator>
 deque<T, Allocator>::~deque()
 {
-    erase(cbegin(), cend());
+    clear();
 
     for (size_type i = 0; i < center_map.array_count; ++i)
     {
@@ -374,6 +418,57 @@ deque<T, Allocator>::~deque()
     delete cmap_it_cap_begin;
     delete cmap_it_cap_end;
     (*validating_ptr.get()) = false;
+}
+
+template <typename T, typename Allocator>
+deque<T, Allocator>&
+deque<T, Allocator>::operator = (const deque& _another)
+{
+    deque temp(_another);
+    swap(temp);
+    return *this;
+}
+
+template <typename T, typename Allocator>
+deque<T, Allocator>&
+deque<T, Allocator>::operator = (deque&& _another)
+{
+    deque temp(_another);
+    swap(temp);
+    return *this;
+}
+
+template <typename T, typename Allocator>
+deque<T, Allocator>&
+deque<T, Allocator>::operator = (initializer_list<T> _ilist)
+{
+    deque temp(_ilist);
+    swap(temp);
+    return *this;
+}
+
+template <typename T, typename Allocator>
+template <typename InputIterator>
+void
+deque<T, Allocator>::assign(InputIterator _first, InputIterator _last)
+{
+    deque temp(_first, _last);
+    swap(temp);
+}
+
+template <typename T, typename Allocator>
+void
+deque<T, Allocator>::assign(size_type _n, const value_type &_value)
+{
+    deque temp(_n, _value);
+    swap(temp);
+}
+
+template <typename T, typename Allocator>
+void
+deque<T, Allocator>::assign(initializer_list<T> _ilist)
+{
+    this->operator= (_ilist);
 }
 
 template <typename T, typename Allocator>
@@ -392,6 +487,20 @@ deque<T, Allocator>::end() noexcept
 
 template <typename T, typename Allocator>
 typename deque<T, Allocator>::const_iterator
+deque<T, Allocator>::begin() const noexcept
+{
+    return cbegin();
+}
+
+template <typename T, typename Allocator>
+typename deque<T, Allocator>::const_iterator
+deque<T, Allocator>::end() const noexcept
+{
+    return cend();
+}
+
+template <typename T, typename Allocator>
+typename deque<T, Allocator>::const_iterator
 deque<T, Allocator>::cbegin() const noexcept
 {
     return const_iterator(*cmap_it_begin);
@@ -402,6 +511,20 @@ typename deque<T, Allocator>::const_iterator
 deque<T, Allocator>::cend() const noexcept
 {
     return const_iterator(*cmap_it_end);
+}
+
+template <typename T, typename Allocator>
+typename deque<T, Allocator>::reverse_iterator
+deque<T, Allocator>::rbegin() noexcept
+{
+    return reverse_iterator(end());
+}
+
+template <typename T, typename Allocator>
+typename deque<T, Allocator>::reverse_iterator
+deque<T, Allocator>::rend() noexcept
+{
+    return reverse_iterator(begin());
 }
 
 template <typename T, typename Allocator>
@@ -515,14 +638,15 @@ deque<T, Allocator>::emplace(const_iterator _pos, Args... _args)
     if (_pos - cbegin() < cend() - _pos)
     {
         emplace_front(front());
-        _pos = const_iterator(cbegin() + _pos_diff);
+        _pos = const_iterator(cbegin() + _pos_diff + 1);
         copy(cbegin()+1, _pos, begin());
+        --_pos;
     }
     else
     {
         emplace_back(back());
         _pos = const_iterator(cbegin() + _pos_diff);
-        reverse_copy(_pos, cend(), iterator(_pos+1));
+        reverse_copy(_pos, --cend(), rbegin());
     }
 
     destroy_at(std::addressof(*iterator(_pos)));
@@ -580,7 +704,7 @@ deque<T, Allocator>::insert(const_iterator _pos, const value_type &_value)
     if (_pos == cend())
     {
         emplace_back(_value);
-        return end();
+        return end()-1;
     }
     else if (_pos == cbegin())
     {
@@ -589,16 +713,55 @@ deque<T, Allocator>::insert(const_iterator _pos, const value_type &_value)
     }
     else
     {
+        difference_type pos_diff = _pos - cbegin();
         emplace(_pos, _value);
-        return iterator(_pos);
+        return iterator(begin() + pos_diff);
     }
+}
+
+template <typename T, typename Allocator>
+typename deque<T, Allocator>::iterator
+deque<T, Allocator>::insert(const_iterator _pos,
+                            size_type _n,
+                            const value_type &_value)
+{
+    // This is just a *temporary* solution
+    // implement this insert by inserting elements one by one.
+
+    for (size_type i = 0; i < _n; ++i)
+    {
+        _pos = insert(_pos, _value);
+        ++_pos;
+    }
+    return _pos;
+}
+
+template <typename T, typename Allocator>
+template <typename InputIterator>
+typename deque<T, Allocator>::iterator
+deque<T, Allocator>::insert(const_iterator _pos,
+                            InputIterator _first, InputIterator _last)
+{
+    for (; _first != _last; ++_first)
+    {
+        _pos = insert(_pos, *_first);
+        ++_pos;
+    }
+    return _pos;
+}
+
+template <typename T, typename Allocator>
+typename deque<T, Allocator>::iterator
+deque<T, Allocator>::insert(const_iterator _pos, initializer_list<T> _ilist)
+{
+    return insert(_pos, _ilist.begin(), _ilist.end());
 }
 
 template <typename T, typename Allocator>
 typename deque<T, Allocator>::iterator
 deque<T, Allocator>::erase(const_iterator _position)
 {
-    erase(_position, _position+1);
+    return erase(_position, _position+1);
 }
 
 template <typename T, typename Allocator>
@@ -621,6 +784,27 @@ deque<T, Allocator>::erase(const_iterator _first, const_iterator _last)
         cmap_it_end->operator= (end_of_storage.cmap_it);
         return end_of_storage;
     }
+}
+
+template <typename T, typename Allocator>
+void
+deque<T, Allocator>::clear()
+{
+    erase(begin(), end());
+}
+
+template <typename T, typename Allocator>
+void
+deque<T, Allocator>::swap(deque &_another)
+{
+    swap(alloc, _another.alloc);
+    swap(ptr_alloc, _another.ptr_alloc);
+    saber::swap(center_map, _another.center_map);
+    saber::swap(cmap_it_begin, _another.cmap_it_begin);
+    saber::swap(cmap_it_end, _another.cmap_it_end);
+    saber::swap(cmap_it_cap_begin, _another.cmap_it_cap_begin);
+    saber::swap(cmap_it_cap_end, _another.cmap_it_cap_end);
+    saber::swap(validating_ptr, _another.validating_ptr);
 }
 
 template <typename T, typename Allocator>
@@ -939,7 +1123,7 @@ template <typename T, typename Allocator>
 typename deque<T, Allocator>::const_iterator&
 deque<T, Allocator>::const_iterator::operator-= (difference_type _diff)
 {
-    cmap_it += -1 * _diff;
+    cmap_it += (-1 * _diff);
     return *this;
 }
 
@@ -1067,6 +1251,13 @@ deque<T, Allocator>::cmap_iterator::operator- (const cmap_iterator& _another)
     return subarray_size * (subarray_ptr - _another.subarray_ptr - 1)
            + (index)
            + (subarray_size - _another.index);
+}
+
+template <typename T, typename Allocator>
+void
+swap(deque<T, Allocator> &_d1, deque<T, Allocator> &_d2)
+{
+    _d1.swap(_d2);
 }
 
 } // namespace saber
