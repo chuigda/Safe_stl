@@ -1,12 +1,10 @@
 ﻿#ifndef DEQUE_HPP
 #define DEQUE_HPP
 
-#include "safe_stl_general.hpp"
 #include "strings.defs.h"
 #include "iterator.hpp"
 #include "memory.hpp"
 #include "algorithm.hpp"
-#include "excalibur.hpp"
 
 namespace saber
 {
@@ -14,6 +12,11 @@ namespace saber
 template <typename T, typename Allocator = default_allocator<T>>
 class deque
 {
+    static_assert(std::is_copy_constructible<T>::value,
+                  ELEM_COPY_CONSTRUCT_ERROR);
+    static_assert(std::is_destructible<T>::value,
+                  ELEM_DESTROY_ERROR);
+
 public:
     using value_type = T;
     using pointer = T*;
@@ -373,6 +376,7 @@ template <typename T, typename Allocator>
 deque<T, Allocator>::deque(const deque &_another, const Allocator &_alloc) :
     deque(_another.cbegin(), _another.cend(), _alloc)
 {
+    stl_warning(CONTAINER_COPY);
 }
 
 template <typename T, typename Allocator>
@@ -737,6 +741,9 @@ template <typename T, typename Allocator>
 typename deque<T, Allocator>::iterator
 deque<T, Allocator>::insert(const_iterator _pos, const value_type &_value)
 {
+    static_assert(std::is_copy_constructible<T>::value,
+                  TEMPLATE_ARG_NOT_COPY_ASSIGNABLE);
+
     if (_pos == cend())
     {
         emplace_back(_value);
@@ -764,6 +771,9 @@ deque<T, Allocator>::insert(const_iterator _pos,
     // This is just a *temporary* solution
     // implement this insert by inserting elements one by one.
 
+    static_assert(std::is_copy_assignable<T>::value,
+                  TEMPLATE_ARG_NOT_COPY_ASSIGNABLE);
+
     for (size_type i = 0; i < _n; ++i)
     {
         _pos = insert(_pos, _value);
@@ -778,6 +788,9 @@ typename deque<T, Allocator>::iterator
 deque<T, Allocator>::insert(const_iterator _pos,
                             InputIterator _first, InputIterator _last)
 {
+    static_assert(std::is_copy_assignable<T>::value,
+                  TEMPLATE_ARG_NOT_COPY_ASSIGNABLE);
+
     for (; _first != _last; ++_first)
     {
         _pos = insert(_pos, *_first);
@@ -790,6 +803,9 @@ template <typename T, typename Allocator>
 typename deque<T, Allocator>::iterator
 deque<T, Allocator>::insert(const_iterator _pos, initializer_list<T> _ilist)
 {
+    static_assert(std::is_copy_assignable<T>::value,
+                  TEMPLATE_ARG_NOT_COPY_ASSIGNABLE);
+
     return insert(_pos, _ilist.begin(), _ilist.end());
 }
 
@@ -797,6 +813,9 @@ template <typename T, typename Allocator>
 typename deque<T, Allocator>::iterator
 deque<T, Allocator>::erase(const_iterator _position)
 {
+    static_assert(std::is_copy_assignable<T>::value,
+                  TEMPLATE_ARG_NOT_COPY_ASSIGNABLE);
+
     return erase(_position, _position+1);
 }
 
