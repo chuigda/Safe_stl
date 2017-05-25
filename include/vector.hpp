@@ -774,9 +774,15 @@ template <typename T, typename Allocator>
 typename vector<T, Allocator>::reference
 vector<T, Allocator>::at(typename vector::size_type _index)
 {
-    if (_index >= size())
-        stl_panic(ARRAY_OVERFLOW);
+    if (_index >= size()) throw std::out_of_range(SUBSCRIPT_OVERFLOW);
+    return array[_index];
+}
 
+template <typename T, typename Allocator>
+typename vector<T, Allocator>::const_reference
+vector<T, Allocator>::at(typename vector::size_type _index) const
+{
+    if (_index >= size()) throw std::out_of_range(SUBSCRIPT_OVERFLOW);
     return array[_index];
 }
 
@@ -784,24 +790,18 @@ template <typename T, typename Allocator>
 typename vector<T, Allocator>::reference
 vector<T, Allocator>::operator[](typename vector::size_type _index)
 {
-    return at(_index);
-}
-
-template <typename T, typename Allocator>
-typename vector<T, Allocator>::const_reference
-vector<T, Allocator>::at(typename vector::size_type _index) const
-{
-    if (_index >= size())
-        stl_panic(ARRAY_OVERFLOW);
-
+    if (_index >= size()) stl_panic(SUBSCRIPT_OVERFLOW);
     return array[_index];
 }
+
+
 
 template <typename T, typename Allocator>
 typename vector<T, Allocator>::const_reference
 vector<T, Allocator>::operator[](typename vector::size_type _index) const
 {
-    return at(_index);
+    if (_index >= size()) stl_panic(SUBSCRIPT_OVERFLOW);
+    return array[_index];
 }
 
 template <typename T, typename Allocator>

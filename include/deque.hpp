@@ -136,6 +136,7 @@ private:
     void add_subarray_at_end();
 
     subarray_type create_subarray();
+    void update_vector();
 
     cmap_iterator *cmap_it_begin = nullptr;
     cmap_iterator *cmap_it_end = nullptr;
@@ -200,9 +201,15 @@ public:
 private:
     using cmap_iterator = typename deque::cmap_iterator;
     cmap_iterator cmap_it;
+    uint32_t update_count = 0;
+
+    void check_initialized() const;
+    void check_up_to_date() const;
+    void check_dereferencable() const;
 
     iterator(const cmap_iterator& cmap_it) :
-        cmap_it(cmap_it)
+        cmap_it(cmap_it),
+        update_count(cmap_it.get_from->update_count)
     {}
 };
 
@@ -255,8 +262,15 @@ private:
     using cmap_iterator = typename deque::cmap_iterator;
     cmap_iterator cmap_it;
 
+    uint32_t update_count = 0;
+
+    void check_initialized() const;
+    void check_up_to_date() const;
+    void check_dereferencable() const;
+
     const_iterator(const cmap_iterator& cmap_it) :
-        cmap_it(cmap_it)
+        cmap_it(cmap_it),
+        update_count(cmap_it.get_from->update_count)
     {}
 };
 
@@ -305,12 +319,10 @@ private:
         p_cmap(&(_get_from->center_map)),
         subarray_ptr(_subarray_ptr),
         index(_subarray_index),
-        validating_ptr(_get_from->validating_ptr),
-        update_count(_get_from->update_count)
+        validating_ptr(_get_from->validating_ptr)
     {}
 
     void check_initialized() const;
-    void check_up_to_date() const;
     void check_dereferencable() const;
 
     const deque *get_from = nullptr;
@@ -318,7 +330,6 @@ private:
     size_type subarray_ptr = 0;
     difference_type index = 0;
     saber_ptr<bool> validating_ptr;
-    uint32_t update_count;
 };
 
 //////////////////////////////////////////////////////////////////////////////
@@ -592,6 +603,7 @@ template <typename T, typename Allocator>
 typename deque<T, Allocator>::reference
 deque<T, Allocator>::at(size_type _n)
 {
+    if (_n >= size()) throw std::out_of_range(SUBSCRIPT_OVERFLOW);
     return *(begin() + _n);
 }
 
@@ -599,6 +611,7 @@ template <typename T, typename Allocator>
 typename deque<T, Allocator>::const_reference
 deque<T, Allocator>::at(size_type _n) const
 {
+    if (_n >= size()) throw std::out_of_range(SUBSCRIPT_OVERFLOW);
     return *(cbegin() + _n);
 }
 
@@ -606,6 +619,7 @@ template <typename T, typename Allocator>
 typename deque<T, Allocator>::reference
 deque<T, Allocator>::operator[] (size_type _n)
 {
+    if (_n >= size()) stl_panic(SUBSCRIPT_OVERFLOW);
     return *(begin() + _n);
 }
 
@@ -613,6 +627,7 @@ template <typename T, typename Allocator>
 typename deque<T, Allocator>::const_reference
 deque<T, Allocator>::operator[] (size_type _n) const
 {
+    if (_n >= size()) stl_panic(SUBSCRIPT_OVERFLOW);
     return *(cbegin() + _n);
 }
 
@@ -653,6 +668,8 @@ deque<T, Allocator>::emplace_back(Args... _args)
     construct(std::addressof(cmap_it_end->operator*()),
               std::forward<Args>(_args)...);
     cmap_it_end->operator++();
+
+    update_vector();
 }
 
 template <typename T, typename Allocator>
@@ -666,6 +683,8 @@ deque<T, Allocator>::emplace_front(Args... _args)
     construct(std::addressof(*by_the_way),
               std::forward<Args>(_args)...);
     cmap_it_begin->operator--();
+
+    update_vector();
 }
 
 template <typename T, typename Allocator>
@@ -727,6 +746,7 @@ deque<T, Allocator>::pop_back()
 {
     destroy_at(std::addressof(*end()));
     cmap_it_end--;
+    update_vector();
 }
 
 template <typename T, typename Allocator>
@@ -735,6 +755,7 @@ deque<T, Allocator>::pop_front()
 {
     destroy_at(std::addressof(*begin()));
     cmap_it_begin++;
+    update_vector();
 }
 
 template <typename T, typename Allocator>
@@ -758,6 +779,7 @@ deque<T, Allocator>::insert(const_iterator _pos, const value_type &_value)
     {
         difference_type pos_diff = _pos - cbegin();
         emplace(_pos, _value);
+        update_vector();
         return iterator(begin() + pos_diff);
     }
 }
@@ -829,7 +851,8 @@ deque<T, Allocator>::erase(const_iterator _first, const_iterator _last)
                 reverse_copy(cbegin(), _first, iterator(_last));
         destroy(begin(), begin_of_storage);
         cmap_it_begin->operator= (begin_of_storage.cmap_it);
-        return begin_of_storage;
+        update_vector();
+        return iterator(begin_of_storage.cmap_it);
     }
     else
     {
@@ -837,7 +860,8 @@ deque<T, Allocator>::erase(const_iterator _first, const_iterator _last)
                 copy(_last, cend(), iterator(_first));
         destroy(end_of_storage, end());
         cmap_it_end->operator= (end_of_storage.cmap_it);
-        return end_of_storage;
+        update_vector();
+        return iterator(end_of_storage.cmap_it);
     }
 }
 
@@ -913,6 +937,16 @@ deque<T, Allocator>::create_subarray()
     return subarray;
 }
 
+template <typename T, typename Allocator>
+void
+deque<T, Allocator>::update_vector()
+{
+    update_count++;
+    if (update_count == std::numeric_limits<decltype(update_count)>::max())
+    {
+        update_count = 0;
+    }
+}
 
 
 
@@ -927,7 +961,7 @@ template <typename T, typename Allocator>
 typename deque<T, Allocator>::iterator::reference
 deque<T, Allocator>::iterator::operator* ()
 {
-    cmap_it.check_dereferencable();
+    check_dereferencable();
     return cmap_it.operator* ();
 }
 
@@ -935,7 +969,7 @@ template <typename T, typename Allocator>
 typename deque<T, Allocator>::iterator::const_reference
 deque<T, Allocator>::iterator::operator* () const
 {
-    cmap_it.check_dereferencable();
+    check_dereferencable();
     return cmap_it.operator* ();
 }
 
@@ -943,6 +977,7 @@ template <typename T, typename Allocator>
 typename deque<T, Allocator>::iterator::reference
 deque<T, Allocator>::iterator::operator[] (difference_type _diff)
 {
+    check_dereferencable();
     return *(*this + _diff);
 }
 
@@ -950,6 +985,7 @@ template <typename T, typename Allocator>
 typename deque<T, Allocator>::iterator::const_reference
 deque<T, Allocator>::iterator::operator[] (difference_type _diff) const
 {
+    check_dereferencable();
     return *(*this + _diff);
 }
 
@@ -957,7 +993,7 @@ template <typename T, typename Allocator>
 bool
 deque<T, Allocator>::iterator::operator== (const iterator& _another) const
 {
-    cmap_it.check_up_to_date();
+    check_up_to_date();
     return cmap_it == _another.cmap_it;
 }
 
@@ -965,7 +1001,7 @@ template <typename T, typename Allocator>
 bool
 deque<T, Allocator>::iterator::operator!= (const iterator& _another) const
 {
-    cmap_it.check_up_to_date();
+    check_up_to_date();
     return cmap_it != _another.cmap_it;
 }
 
@@ -973,7 +1009,7 @@ template <typename T, typename Allocator>
 bool
 deque<T, Allocator>::iterator::operator< (const iterator& _another) const
 {
-    cmap_it.check_up_to_date();
+    check_up_to_date();
     return cmap_it < _another.cmap_it;
 }
 
@@ -1002,7 +1038,7 @@ template <typename T, typename Allocator>
 typename deque<T, Allocator>::iterator&
 deque<T, Allocator>::iterator::operator++ ()
 {
-    cmap_it.check_up_to_date();
+    check_up_to_date();
     ++cmap_it;
     return *this;
 }
@@ -1011,7 +1047,7 @@ template <typename T, typename Allocator>
 typename deque<T, Allocator>::iterator&
 deque<T, Allocator>::iterator::operator-- ()
 {
-    cmap_it.check_up_to_date();
+    check_up_to_date();
     --cmap_it;
     return *this;
 }
@@ -1038,7 +1074,7 @@ template <typename T, typename Allocator>
 typename deque<T, Allocator>::iterator&
 deque<T, Allocator>::iterator::operator+= (difference_type _diff)
 {
-    cmap_it.check_up_to_date();
+    check_up_to_date();
     cmap_it += _diff;
     return *this;
 }
@@ -1047,7 +1083,7 @@ template <typename T, typename Allocator>
 typename deque<T, Allocator>::iterator&
 deque<T, Allocator>::iterator::operator-= (difference_type _diff)
 {
-    cmap_it.check_up_to_date();
+    check_up_to_date();
     cmap_it += -1* _diff;
     return *this;
 }
@@ -1074,9 +1110,35 @@ template <typename T, typename Allocator>
 typename deque<T, Allocator>::iterator::difference_type
 deque<T, Allocator>::iterator::operator- (const iterator& _another)
 {
-    cmap_it.check_up_to_date();
-    _another.cmap_it.check_up_to_date();
+    check_up_to_date();
+    _another.check_up_to_date();
     return cmap_it - _another.cmap_it;
+}
+
+template <typename T, typename Allocator>
+void
+deque<T, Allocator>::iterator::check_initialized() const
+{
+    cmap_it.check_initialized();
+}
+
+template <typename T, typename Allocator>
+void
+deque<T, Allocator>::iterator::check_up_to_date() const
+{
+    check_initialized();
+    if (update_count != cmap_it.get_from->update_count)
+    {
+        stl_panic(OLD_ITERATOR);
+    }
+}
+
+template <typename T, typename Allocator>
+void
+deque<T, Allocator>::iterator::check_dereferencable() const
+{
+    check_up_to_date();
+    cmap_it.check_dereferencable();
 }
 
 
@@ -1092,7 +1154,7 @@ template <typename T, typename Allocator>
 typename deque<T, Allocator>::const_iterator::const_reference
 deque<T, Allocator>::const_iterator::operator* () const
 {
-    cmap_it.check_dereferencable();
+    check_dereferencable();
     return cmap_it.operator* ();
 }
 
@@ -1100,6 +1162,7 @@ template <typename T, typename Allocator>
 typename deque<T, Allocator>::const_iterator::const_reference
 deque<T, Allocator>::const_iterator::operator[] (difference_type _diff) const
 {
+    check_dereferencable();
     return *(*this + _diff);
 }
 
@@ -1108,7 +1171,7 @@ bool
 deque<T, Allocator>::const_iterator::operator== (
         const const_iterator& _another) const
 {
-    cmap_it.check_up_to_date();
+    check_up_to_date();
     return cmap_it == _another.cmap_it;
 }
 
@@ -1117,7 +1180,7 @@ bool
 deque<T, Allocator>::const_iterator::operator!= (
         const const_iterator& _another) const
 {
-    cmap_it.check_up_to_date();
+    check_up_to_date();
     return cmap_it != _another.cmap_it;
 }
 
@@ -1126,7 +1189,7 @@ bool
 deque<T, Allocator>::const_iterator::operator< (
         const const_iterator& _another) const
 {
-    cmap_it.check_up_to_date();
+    check_up_to_date();
     return cmap_it < _another.cmap_it;
 }
 
@@ -1158,7 +1221,7 @@ template <typename T, typename Allocator>
 typename deque<T, Allocator>::const_iterator&
 deque<T, Allocator>::const_iterator::operator++ ()
 {
-    cmap_it.check_up_to_date();
+    check_up_to_date();
     ++cmap_it;
     return *this;
 }
@@ -1167,7 +1230,7 @@ template <typename T, typename Allocator>
 typename deque<T, Allocator>::const_iterator&
 deque<T, Allocator>::const_iterator::operator-- ()
 {
-    cmap_it.check_up_to_date();
+    check_up_to_date();
     --cmap_it;
     return *this;
 }
@@ -1194,7 +1257,7 @@ template <typename T, typename Allocator>
 typename deque<T, Allocator>::const_iterator&
 deque<T, Allocator>::const_iterator::operator+= (difference_type _diff)
 {
-    cmap_it.check_up_to_date();
+    check_up_to_date();
     cmap_it += _diff;
     return *this;
 }
@@ -1203,7 +1266,7 @@ template <typename T, typename Allocator>
 typename deque<T, Allocator>::const_iterator&
 deque<T, Allocator>::const_iterator::operator-= (difference_type _diff)
 {
-    cmap_it.check_up_to_date();
+    check_up_to_date();
     cmap_it += (-1 * _diff);
     return *this;
 }
@@ -1230,9 +1293,35 @@ template <typename T, typename Allocator>
 typename deque<T, Allocator>::const_iterator::difference_type
 deque<T, Allocator>::const_iterator::operator- (const const_iterator& _another)
 {
-    cmap_it.check_up_to_date();
-    _another.cmap_it.check_up_to_date();
+    check_up_to_date();
+    _another.check_up_to_date();
     return cmap_it - _another.cmap_it;
+}
+
+template <typename T, typename Allocator>
+void
+deque<T, Allocator>::const_iterator::check_initialized() const
+{
+    cmap_it.check_initialized();
+}
+
+template <typename T, typename Allocator>
+void
+deque<T, Allocator>::const_iterator::check_up_to_date() const
+{
+    check_initialized();
+    if (update_count != cmap_it.get_from->update_count)
+    {
+        stl_panic(OLD_ITERATOR);
+    }
+}
+
+template <typename T, typename Allocator>
+void
+deque<T, Allocator>::const_iterator::check_dereferencable() const
+{
+    check_up_to_date();
+    cmap_it.check_dereferencable();
 }
 
 
@@ -1330,7 +1419,6 @@ typename deque<T, Allocator>::cmap_iterator::difference_type
 deque<T, Allocator>::cmap_iterator::operator- (const cmap_iterator& _another)
 {
     // according to EA-STL, this is a fairly clever algorithm since HP STL.
-    // Fucking EA-STL. I may never trust in it any more.
     return subarray_size * (subarray_ptr - _another.subarray_ptr - 1)
            + (index)
            + (subarray_size - _another.index);
@@ -1349,6 +1437,8 @@ deque<T, Allocator>::cmap_iterator::check_initialized() const
         stl_panic(UNINITIALIZED_ITERATOR);
     }
 
+    assert(p_cmap != nullptr);
+
     if (*(validating_ptr.get()) == false)
     {
         stl_panic(DELETED_CONTAINER);
@@ -1357,23 +1447,11 @@ deque<T, Allocator>::cmap_iterator::check_initialized() const
 
 template <typename T, typename Allocator>
 void
-deque<T, Allocator>::cmap_iterator::check_up_to_date() const
-{
-    check_initialized();
-    if (update_count != get_from->update_count)
-    {
-        stl_panic(OLD_ITERATOR);
-    }
-}
-
-template <typename T, typename Allocator>
-void
 deque<T, Allocator>::cmap_iterator::check_dereferencable() const
 {
-    check_up_to_date();
     if (*this < *(get_from->cmap_it_begin)
-        || *(get_from->cmap_it_end) == *this
-        || *(get_from->cmap_it_end) < *this)
+        || *(get_from->cmap_it_end) < *this
+        || *(get_from->cmap_it_end) == *this)
     {
         stl_panic(ITERATOR_OVERFLOW);
     }

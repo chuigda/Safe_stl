@@ -43,8 +43,8 @@
 #define CONTAINER_COPY\
     "Copying container"
 
-#define ARRAY_OVERFLOW\
-    "Accessing an invalid target"
+#define SUBSCRIPT_OVERFLOW\
+    "Accessing an invalid subscript"
 
 #define ITERATOR_OVERFLOW\
     "This iterator is now pointing to an invalid position, for example, end()"
