@@ -1,4 +1,4 @@
-//////////////////////////////////////////////////////////////////////////////
+﻿//////////////////////////////////////////////////////////////////////////////
 
 //                             尘飞舞缓落旧纸扇                             //
 //                             花一裳绫罗的绸缎                             //
@@ -19,7 +19,7 @@
 
 //////////////////////////////////////////////////////////////////////////////
 
-﻿#ifdef _MSC_VER
+#ifdef _MSC_VER
 #pragma once
 #endif
 
@@ -189,6 +189,13 @@ public:
         (*shared_count)++;
     }
 
+    saber_ptr& operator= (const saber_ptr& _another)
+    {
+        ptr = _another.ptr;
+        shared_count = _another.shared_count;
+        (*shared_count)++;
+    }
+
     ~saber_ptr()
     {
         --(*shared_count);
@@ -214,7 +221,55 @@ private:
 };
 
 template <typename T>
-void swap(saber_ptr<T>& _a, saber_ptr<T>& _b)
+class caster_ptr
+{
+public:
+    caster_ptr(T* _raw = nullptr) : raw(_raw) {}
+    ~caster_ptr() { delete raw; }
+
+    caster_ptr(const caster_ptr&) = delete;
+    caster_ptr(caster_ptr&& _another)
+    {
+        assert(raw == nullptr);
+        delete raw;
+        raw = _another.raw;
+        _another.raw = nullptr;
+    }
+
+    caster_ptr& operator= (const caster_ptr&) = delete;
+    caster_ptr& operator= (caster_ptr&& _another)
+    {
+        delete raw;
+        raw = _another.raw;
+        _another.raw = nullptr;
+        return *this;
+    }
+
+    inline T* get_raw() { return raw; }
+    inline const T* get_raw() const { return raw; }
+
+    inline T& operator* () { return *raw; }
+    inline const T& operator* () const { return *raw; }
+
+    void swap(caster_ptr& _another) noexcept
+    {
+        saber::swap(raw, _another.raw);
+    }
+
+private:
+    T* raw;
+};
+
+template <typename T>
+void
+swap(saber_ptr<T>& _a, saber_ptr<T>& _b)
+{
+    _a.swap(_b);
+}
+
+template <typename T>
+void
+swap(caster_ptr<T>& _a, caster_ptr<T>& _b)
 {
     _a.swap(_b);
 }
