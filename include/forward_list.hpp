@@ -518,7 +518,7 @@ forward_list<T, Allocator>::splice_after(const_iterator _pos,
     }
     else
     {
-        stl_warning(SPLICE_BETWEEN_UNEQUAL_ALLOC_CONTAINERS);
+        stl_warning(C8_DYN__CONT__SPLICE_BETWEEN_UNEQUAL_ALLOC_CONTAINERS);
         insert_after(_pos, ++_before_first, _last);
         _from.erase_after(_before_first, _last);
     }
@@ -685,7 +685,7 @@ forward_list<T, Allocator>::check_iterator(
 {
     if (!search_node(_iter.node))
     {
-        stl_panic(UNKNOWN_REGION_ITERATOR);
+        stl_panic(C8_DYN__ITER__UNKNOWN_REGION_ITERATOR);
     }
 }
 
@@ -771,7 +771,7 @@ forward_list<T, Allocator>::iterator::check_initialized() const noexcept
     {
         assert(node == nullptr);
         assert(validating_ptr.get() == nullptr);
-        stl_panic(UNINITIALIZED_ITERATOR);
+        stl_panic(C8_DYN__ITER__UNINITIALIZED_ITERATOR);
    }
 }
 
@@ -783,12 +783,12 @@ forward_list<T, Allocator>::iterator::check_valid() const noexcept
 
     if (*(validating_ptr.get()) == false)
     {
-        stl_panic(DELETED_CONTAINER);
+        stl_panic(C8_DYN__ITER__DELETED_CONTAINER);
     }
 
     if (! get_from->search_node(node))
     {
-        stl_panic(OLD_ITERATOR);
+        stl_panic(C8_DYN__ITER__OLD_ITERATOR);
     }
 }
 
@@ -799,7 +799,7 @@ forward_list<T, Allocator>::iterator::check_dereferencable() const noexcept
     check_valid();
     if (node == get_from->head)
     {
-        stl_panic(ITERATOR_OVERFLOW);
+        stl_panic(C8_DYN__ITER__ITERATOR_OVERFLOW);
     }
 }
 
@@ -877,7 +877,7 @@ forward_list<T, Allocator>::const_iterator::check_initialized() const noexcept
     {
         assert(node == nullptr);
         assert(validating_ptr.get() == nullptr);
-        stl_panic(UNINITIALIZED_ITERATOR);
+        stl_panic(C8_DYN__ITER__UNINITIALIZED_ITERATOR);
     }
 }
 
@@ -889,12 +889,12 @@ forward_list<T, Allocator>::const_iterator::check_valid() const noexcept
 
     if (*(validating_ptr.get()) == false)
     {
-        stl_panic(DELETED_CONTAINER);
+        stl_panic(C8_DYN__ITER__DELETED_CONTAINER);
     }
 
     if (!get_from->search_node(node))
     {
-        stl_panic(OLD_ITERATOR);
+        stl_panic(C8_DYN__ITER__OLD_ITERATOR);
     }
 }
 
@@ -906,7 +906,7 @@ forward_list<T, Allocator>::const_iterator::check_dereferencable() const noexcep
 
     if (node == get_from->head)
     {
-        stl_panic(ITERATOR_OVERFLOW);
+        stl_panic(C8_DYN__ITER__ITERATOR_OVERFLOW);
     }
 
 }

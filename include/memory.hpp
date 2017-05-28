@@ -63,9 +63,9 @@ uninitialized_copy(InputIterator _first,
                    ForwardIterator _d_first)
 {
     static_assert(traits::is_forward_iterator<ForwardIterator>::value,
-                  TEMPLATE_ARG_NOT_FORWARD_ITERATOR);
+                  C8_STAT__TEMPLATE_ARG__ITER__NOT_FORWARD_ITERATOR);
     static_assert(traits::is_input_iterator<InputIterator>::value,
-                  TEMPLATE_ARG_NOT_INPUT_ITERATOR);
+                  C8_STAT__TEMPLATE_ARG__ITER__NOT_INPUT_ITERATOR);
 
     {
     ForwardIterator current = _d_first;
@@ -94,9 +94,9 @@ ForwardIterator uninitialized_copy_n(InputIterator _first,
                                      ForwardIterator _d_first)
 {
     static_assert(traits::is_forward_iterator<ForwardIterator>::value,
-                  TEMPLATE_ARG_NOT_FORWARD_ITERATOR);
+                  C8_STAT__TEMPLATE_ARG__ITER__NOT_FORWARD_ITERATOR);
     static_assert(traits::is_input_iterator<InputIterator>::value,
-                  TEMPLATE_ARG_NOT_INPUT_ITERATOR);
+                  C8_STAT__TEMPLATE_ARG__ITER__NOT_INPUT_ITERATOR);
 
     {
     ForwardIterator current = _d_first;
@@ -194,6 +194,7 @@ public:
         ptr = _another.ptr;
         shared_count = _another.shared_count;
         (*shared_count)++;
+        return *this;
     }
 
     ~saber_ptr()

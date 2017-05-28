@@ -18,9 +18,9 @@ template <typename T,
 class vector
 {
     static_assert(std::is_copy_constructible<T>::value,
-                  ELEM_COPY_CONSTRUCT_ERROR);
+                  C8_STAT__TEMPLATE_ARG__T__COPY_CONSTRUCT_ERROR);
     static_assert(std::is_destructible<T>::value,
-                  ELEM_DESTROY_ERROR);
+                  C8_STAT__TEMPLATE_ARG__T__DESTROY_ERROR);
 
 public:
     using value_type      = T;
@@ -282,7 +282,7 @@ vector<T, Allocator>::vector(const vector &_another,
     alloc(_alloc),
     validating_ptr(new bool(true))
 {
-    stl_warning(CONTAINER_COPY);
+    stl_warning(C8_DYN__CONT__CONTAINER_COPY);
     array = allocator_traits<Allocator>::allocate(alloc, _another.size());
 
     saber::uninitialized_copy(_another.begin(), _another.end(), array);
@@ -377,7 +377,7 @@ template <typename T, typename Allocator>
 vector<T, Allocator>&
 vector<T, Allocator>::operator=(const vector &_another)
 {
-    stl_warning(CONTAINER_COPY);
+    stl_warning(C8_DYN__CONT__CONTAINER_COPY);
 
     if (&_another == this)
     {
@@ -443,7 +443,7 @@ void
 vector<T, Allocator>::assign(InputIterator _begin, InputIterator _end)
 {
     static_assert(traits::is_input_iterator<InputIterator>::value,
-                  TEMPLATE_ARG_NOT_INPUT_ITERATOR);
+                  C8_STAT__TEMPLATE_ARG__ITER__NOT_INPUT_ITERATOR);
 
     clear_elements();
     for (; _begin != _end; ++_begin) push_back(*_begin);
@@ -555,7 +555,7 @@ vector<T, Allocator>::insert(const_iterator _position,
                              const value_type &_value)
 {
     static_assert(std::is_copy_assignable<T>::value,
-                  TEMPLATE_ARG_NOT_COPY_ASSIGNABLE);
+                  C8_STAT__TEMPLATE_ARG__T__COPY_ASSIGN_ERROR);
     return insert(_position, size_type(1), _value);
 }
 
@@ -565,9 +565,9 @@ vector<T, Allocator>::insert(const_iterator _position,
                              value_type &&_value)
 {
     static_assert(std::is_copy_assignable<T>::value,
-                  TEMPLATE_ARG_NOT_COPY_ASSIGNABLE);
+                  C8_STAT__TEMPLATE_ARG__T__COPY_ASSIGN_ERROR);
     static_assert(std::is_move_assignable<T>::value,
-                  TEMPLATE_ARG_NOT_MOVE_ASSIGNABLE);
+                  C8_STAT__TEMPLATE_ARG__T__MOVE_ASSIGN_ERROR);
     check_iterator(_position);
 
     return insert(_position, size_type(1), _value);
@@ -580,7 +580,7 @@ vector<T, Allocator>::insert(const_iterator _position,
                              const value_type &_value)
 {
     static_assert(std::is_copy_assignable<T>::value,
-                  TEMPLATE_ARG_NOT_COPY_ASSIGNABLE);
+                  C8_STAT__TEMPLATE_ARG__T__COPY_ASSIGN_ERROR);
     check_iterator(_position);
 
     if (size() + _n < capacity())
@@ -627,7 +627,7 @@ vector<T, Allocator>::insert(const_iterator _position,
                              InputIterator _last)
 {
     static_assert(std::is_copy_assignable<T>::value,
-                  TEMPLATE_ARG_NOT_COPY_ASSIGNABLE);
+                  C8_STAT__TEMPLATE_ARG__T__COPY_ASSIGN_ERROR);
     check_iterator(_position);
 
     difference_type position_diff = _position - cbegin();
@@ -646,7 +646,7 @@ vector<T, Allocator>::insert(const_iterator _position,
                              initializer_list<value_type> _list)
 {
     static_assert(std::is_copy_assignable<T>::value,
-                  TEMPLATE_ARG_NOT_COPY_ASSIGNABLE);
+                  C8_STAT__TEMPLATE_ARG__T__COPY_ASSIGN_ERROR);
     check_iterator(_position);
 
     return insert(_position, _list.begin(), _list.end());
@@ -747,7 +747,7 @@ vector<T, Allocator>::erase(const_reverse_iterator _first,
                             const_reverse_iterator _last)
 {
     static_assert(std::is_move_assignable<T>::value,
-                  TEMPLATE_ARG_NOT_MOVE_ASSIGNABLE);
+                  C8_STAT__TEMPLATE_ARG__T__MOVE_ASSIGN_ERROR);
 
     check_iterator(_first.base());
     check_iterator(_last.base());
@@ -774,7 +774,8 @@ template <typename T, typename Allocator>
 typename vector<T, Allocator>::reference
 vector<T, Allocator>::at(typename vector::size_type _index)
 {
-    if (_index >= size()) throw std::out_of_range(SUBSCRIPT_OVERFLOW);
+    if (_index >= size())
+        throw std::out_of_range(C8_DYN__ITER__SUBSCRIPT_OVERFLOW);
     return array[_index];
 }
 
@@ -782,7 +783,8 @@ template <typename T, typename Allocator>
 typename vector<T, Allocator>::const_reference
 vector<T, Allocator>::at(typename vector::size_type _index) const
 {
-    if (_index >= size()) throw std::out_of_range(SUBSCRIPT_OVERFLOW);
+    if (_index >= size())
+        throw std::out_of_range(C8_DYN__ITER__SUBSCRIPT_OVERFLOW);
     return array[_index];
 }
 
@@ -790,7 +792,7 @@ template <typename T, typename Allocator>
 typename vector<T, Allocator>::reference
 vector<T, Allocator>::operator[](typename vector::size_type _index)
 {
-    if (_index >= size()) stl_panic(SUBSCRIPT_OVERFLOW);
+    if (_index >= size()) stl_panic(C8_DYN__ITER__SUBSCRIPT_OVERFLOW);
     return array[_index];
 }
 
@@ -800,7 +802,7 @@ template <typename T, typename Allocator>
 typename vector<T, Allocator>::const_reference
 vector<T, Allocator>::operator[](typename vector::size_type _index) const
 {
-    if (_index >= size()) stl_panic(SUBSCRIPT_OVERFLOW);
+    if (_index >= size()) stl_panic(C8_DYN__ITER__SUBSCRIPT_OVERFLOW);
     return array[_index];
 }
 
@@ -926,7 +928,7 @@ vector<T, Allocator>::check_iterator(const U& _it)
 {
     if (_it.get_from != this)
     {
-        stl_panic(UNKNOWN_REGION_ITERATOR);
+        stl_panic(C8_DYN__ITER__UNKNOWN_REGION_ITERATOR);
     }
 
     _it.version_check();
@@ -1257,12 +1259,12 @@ vector<T, Allocator>::iterator::version_check() const
 {
     if (*(validating_ptr.get()) == false)
     {
-        stl_panic(DELETED_CONTAINER);
+        stl_panic(C8_DYN__ITER__DELETED_CONTAINER);
     }
 
     if (update_count != get_from->update_count)
     {
-        stl_panic(OLD_ITERATOR);
+        stl_panic(C8_DYN__ITER__OLD_ITERATOR);
     }
 }
 
@@ -1273,7 +1275,7 @@ vector<T, Allocator>::iterator::boundary_check(difference_type _offset) const
     if (ptr + _offset >= &(get_from->array[get_from->size()])
             || ptr + _offset < &(get_from->array[0]))
     {
-        stl_panic(ITERATOR_OVERFLOW);
+        stl_panic(C8_DYN__ITER__ITERATOR_OVERFLOW);
     }
 }
 
@@ -1283,12 +1285,12 @@ vector<T, Allocator>::const_iterator::version_check() const
 {
     if (*(validating_ptr.get()) == false)
     {
-        stl_panic(DELETED_CONTAINER);
+        stl_panic(C8_DYN__ITER__DELETED_CONTAINER);
     }
 
     if (update_count != get_from->update_count)
     {
-        stl_panic(OLD_ITERATOR);
+        stl_panic(C8_DYN__ITER__OLD_ITERATOR);
     }
 }
 
@@ -1299,7 +1301,7 @@ vector<T, Allocator>::const_iterator::boundary_check(difference_type _offset) co
     if (ptr + _offset >= &(get_from->array[get_from->size()])
             || ptr + _offset < &(get_from->array[0]))
     {
-        stl_panic(ITERATOR_OVERFLOW);
+        stl_panic(C8_DYN__ITER__ITERATOR_OVERFLOW);
     }
 }
 

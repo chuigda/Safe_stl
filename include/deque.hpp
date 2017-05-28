@@ -13,9 +13,9 @@ template <typename T, typename Allocator = default_allocator<T>>
 class deque
 {
     static_assert(std::is_copy_constructible<T>::value,
-                  ELEM_COPY_CONSTRUCT_ERROR);
+                  C8_STAT__TEMPLATE_ARG__T__COPY_CONSTRUCT_ERROR);
     static_assert(std::is_destructible<T>::value,
-                  ELEM_DESTROY_ERROR);
+                  C8_STAT__TEMPLATE_ARG__T__DESTROY_ERROR);
 
 public:
     using value_type = T;
@@ -387,7 +387,7 @@ template <typename T, typename Allocator>
 deque<T, Allocator>::deque(const deque &_another, const Allocator &_alloc) :
     deque(_another.cbegin(), _another.cend(), _alloc)
 {
-    stl_warning(CONTAINER_COPY);
+    stl_warning(C8_DYN__CONT__CONTAINER_COPY);
 }
 
 template <typename T, typename Allocator>
@@ -603,7 +603,8 @@ template <typename T, typename Allocator>
 typename deque<T, Allocator>::reference
 deque<T, Allocator>::at(size_type _n)
 {
-    if (_n >= size()) throw std::out_of_range(SUBSCRIPT_OVERFLOW);
+    if (_n >= size())
+        throw std::out_of_range(C8_DYN__ITER__SUBSCRIPT_OVERFLOW);
     return *(begin() + _n);
 }
 
@@ -611,7 +612,8 @@ template <typename T, typename Allocator>
 typename deque<T, Allocator>::const_reference
 deque<T, Allocator>::at(size_type _n) const
 {
-    if (_n >= size()) throw std::out_of_range(SUBSCRIPT_OVERFLOW);
+    if (_n >= size())
+        throw std::out_of_range(C8_DYN__ITER__SUBSCRIPT_OVERFLOW);
     return *(cbegin() + _n);
 }
 
@@ -619,7 +621,7 @@ template <typename T, typename Allocator>
 typename deque<T, Allocator>::reference
 deque<T, Allocator>::operator[] (size_type _n)
 {
-    if (_n >= size()) stl_panic(SUBSCRIPT_OVERFLOW);
+    if (_n >= size()) stl_panic(C8_DYN__ITER__SUBSCRIPT_OVERFLOW);
     return *(begin() + _n);
 }
 
@@ -627,7 +629,7 @@ template <typename T, typename Allocator>
 typename deque<T, Allocator>::const_reference
 deque<T, Allocator>::operator[] (size_type _n) const
 {
-    if (_n >= size()) stl_panic(SUBSCRIPT_OVERFLOW);
+    if (_n >= size()) stl_panic(C8_DYN__ITER__SUBSCRIPT_OVERFLOW);
     return *(cbegin() + _n);
 }
 
@@ -763,7 +765,7 @@ typename deque<T, Allocator>::iterator
 deque<T, Allocator>::insert(const_iterator _pos, const value_type &_value)
 {
     static_assert(std::is_copy_constructible<T>::value,
-                  TEMPLATE_ARG_NOT_COPY_ASSIGNABLE);
+                  C8_STAT__TEMPLATE_ARG__T__COPY_CONSTRUCT_ERROR);
 
     if (_pos == cend())
     {
@@ -794,7 +796,7 @@ deque<T, Allocator>::insert(const_iterator _pos,
     // implement this insert by inserting elements one by one.
 
     static_assert(std::is_copy_assignable<T>::value,
-                  TEMPLATE_ARG_NOT_COPY_ASSIGNABLE);
+                  C8_STAT__TEMPLATE_ARG__T__COPY_ASSIGN_ERROR);
 
     for (size_type i = 0; i < _n; ++i)
     {
@@ -811,7 +813,7 @@ deque<T, Allocator>::insert(const_iterator _pos,
                             InputIterator _first, InputIterator _last)
 {
     static_assert(std::is_copy_assignable<T>::value,
-                  TEMPLATE_ARG_NOT_COPY_ASSIGNABLE);
+                  C8_STAT__TEMPLATE_ARG__T__COPY_ASSIGN_ERROR);
 
     for (; _first != _last; ++_first)
     {
@@ -826,7 +828,7 @@ typename deque<T, Allocator>::iterator
 deque<T, Allocator>::insert(const_iterator _pos, initializer_list<T> _ilist)
 {
     static_assert(std::is_copy_assignable<T>::value,
-                  TEMPLATE_ARG_NOT_COPY_ASSIGNABLE);
+                  C8_STAT__TEMPLATE_ARG__T__COPY_ASSIGN_ERROR);
 
     return insert(_pos, _ilist.begin(), _ilist.end());
 }
@@ -836,7 +838,7 @@ typename deque<T, Allocator>::iterator
 deque<T, Allocator>::erase(const_iterator _position)
 {
     static_assert(std::is_copy_assignable<T>::value,
-                  TEMPLATE_ARG_NOT_COPY_ASSIGNABLE);
+                  C8_STAT__TEMPLATE_ARG__T__COPY_ASSIGN_ERROR);
 
     return erase(_position, _position+1);
 }
@@ -1129,7 +1131,7 @@ deque<T, Allocator>::iterator::check_up_to_date() const
     check_initialized();
     if (update_count != cmap_it.get_from->update_count)
     {
-        stl_panic(OLD_ITERATOR);
+        stl_panic(C8_DYN__ITER__OLD_ITERATOR);
     }
 }
 
@@ -1312,7 +1314,7 @@ deque<T, Allocator>::const_iterator::check_up_to_date() const
     check_initialized();
     if (update_count != cmap_it.get_from->update_count)
     {
-        stl_panic(OLD_ITERATOR);
+        stl_panic(C8_DYN__ITER__OLD_ITERATOR);
     }
 }
 
@@ -1434,14 +1436,14 @@ deque<T, Allocator>::cmap_iterator::check_initialized() const
         assert(subarray_ptr == 0);
         assert(index == 0);
 
-        stl_panic(UNINITIALIZED_ITERATOR);
+        stl_panic(C8_DYN__ITER__UNINITIALIZED_ITERATOR);
     }
 
     assert(p_cmap != nullptr);
 
     if (*(validating_ptr.get()) == false)
     {
-        stl_panic(DELETED_CONTAINER);
+        stl_panic(C8_DYN__ITER__DELETED_CONTAINER);
     }
 }
 
@@ -1453,7 +1455,7 @@ deque<T, Allocator>::cmap_iterator::check_dereferencable() const
         || *(get_from->cmap_it_end) < *this
         || *(get_from->cmap_it_end) == *this)
     {
-        stl_panic(ITERATOR_OVERFLOW);
+        stl_panic(C8_DYN__ITER__ITERATOR_OVERFLOW);
     }
 }
 

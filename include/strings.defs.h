@@ -1,61 +1,63 @@
 ﻿#ifndef STRINGS_DEFS_H
 #define STRINGS_DEFS_H
 
-#define ELEM_COPY_CONSTRUCT_ERROR\
-    "Element type T cannot be copy constructed"
+#define C8_TEMPLATE_ARG_PREFIX "Template argument"
+#define C8_TYPENAME_T_PREFIX "T"
+#define C8_TYPENAME_ITERATOR_PREFIX "Iterator"
 
-#define ELEM_COPY_ASSIGN_ERROR\
-    "Element type T cannot be copy assigned"
+#define C8_STAT__TEMPLATE_ARG__T__COPY_CONSTRUCT_ERROR\
+    C8_TEMPLATE_ARG_PREFIX " " C8_TYPENAME_T_PREFIX " cannot be copy-constructed"
 
-#define ELEM_DESTROY_ERROR\
-    "Element type T cannot be destroyed"
+#define C8_STAT__TEMPLATE_ARG__T__COPY_ASSIGN_ERROR\
+    C8_TEMPLATE_ARG_PREFIX " " C8_TYPENAME_T_PREFIX " cannot be copy-assigned"
 
-#define TEMPLATE_ARG_NOT_ITERATOR\
-    "Template argument Iterator is not an iterator type"
+#define C8_STAT__TEMPLATE_ARG__T__MOVE_ASSIGN_ERROR\
+    C8_TEMPLATE_ARG_PREFIX " " C8_TYPENAME_T_PREFIX " cannot be move-assigned"
 
-#define TEMPLATE_ARG_NOT_INPUT_ITERATOR\
-    "Template argument Iterator is not an input iterator type"
+#define C8_STAT__TEMPLATE_ARG__T__DESTROY_ERROR\
+    C8_TEMPLATE_ARG_PREFIX " " C8_TYPENAME_T_PREFIX " cannot be destroyed"
 
-#define TEMPLATE_ARG_NOT_OUTPUT_ITERATOR\
-    "Template argument Iterator is not an output iterator type"
+#define C8_STAT__TEMPLATE_ARG__ITER__NOT_ITERATOR\
+    C8_TEMPLATE_ARG_PREFIX " " C8_TYPENAME_ITERATOR_PREFIX " is not an iterator type"
 
-#define TEMPLATE_ARG_NOT_FORWARD_ITERATOR\
-    "Template argument Iterator is not a forward iterator type"
+#define C8_STAT__TEMPLATE_ARG__ITER__NOT_INPUT_ITERATOR\
+    C8_TEMPLATE_ARG_PREFIX " " C8_TYPENAME_ITERATOR_PREFIX " is not an input iterator type"
 
-#define TEMPLATE_ARG_NOT_BIDIRECTIONAL_ITERATOR\
-    "Template argument Iterator is not a bidirectional iterator type"
+#define C8_STAT__TEMPLATE_ARG__ITER__NOT_OUTPUT_ITERATOR\
+    C8_TEMPLATE_ARG_PREFIX " " C8_TYPENAME_ITERATOR_PREFIX " is not an output iterator type"
 
-#define TEMPLATE_ARG_NOT_RANDOM_ACCESS_ITERATOR\
-    "Template argument Iterator is not a random-access iterator type"
+#define C8_STAT__TEMPLATE_ARG__ITER__NOT_FORWARD_ITERATOR\
+    C8_TEMPLATE_ARG_PREFIX " " C8_TYPENAME_ITERATOR_PREFIX " is not a forward iterator type"
 
-#define TEMPLATE_ARG_NOT_COPY_ASSIGNABLE\
-    "Template argument T is not copy-assignable"
+#define C8_STAT__TEMPLATE_ARG__ITER__NOT_BIDIRECTIONAL_ITERATOR\
+    C8_TEMPLATE_ARG_PREFIX " " C8_TYPENAME_ITERATOR_PREFIX " is not a bidirectional iterator type"
 
-#define TEMPLATE_ARG_NOT_MOVE_ASSIGNABLE\
-    "Template argument T is not move-assignable"
+#define C8_STAT__TEMPLATE_ARG__ITER__NOT_RANDOM_ACCESS_ITERATOR\
+    C8_TEMPLATE_ARG_PREFIX " " C8_TYPENAME_ITERATOR_PREFIX " is not a random-access iterator type"
 
-#define UNINITIALIZED_ITERATOR\
+
+#define C8_DYN__ITER__UNINITIALIZED_ITERATOR\
     "This iterator did not get initialized"
 
-#define OLD_ITERATOR\
+#define C8_DYN__ITER__OLD_ITERATOR\
     "A manipulating operation has been performed on container object"
 
-#define CONTAINER_COPY\
-    "Copying container"
-
-#define SUBSCRIPT_OVERFLOW\
+#define C8_DYN__ITER__SUBSCRIPT_OVERFLOW\
     "Accessing an invalid subscript"
 
-#define ITERATOR_OVERFLOW\
+#define C8_DYN__ITER__ITERATOR_OVERFLOW\
     "This iterator is now pointing to an invalid position, for example, end()"
 
-#define DELETED_CONTAINER\
-    "Container has been destroyed but iterator left"
+#define C8_DYN__ITER__DELETED_CONTAINER\
+    "Container has been destroyed but left this iterator alone"
 
-#define UNKNOWN_REGION_ITERATOR\
+#define C8_DYN__ITER__UNKNOWN_REGION_ITERATOR\
     "This iterator does not come from this container"
 
-#define SPLICE_BETWEEN_UNEQUAL_ALLOC_CONTAINERS\
+#define C8_DYN__CONT__SPLICE_BETWEEN_UNEQUAL_ALLOC_CONTAINERS\
     "Splicing between two containers which have unequal allocators"
+
+#define C8_DYN__CONT__CONTAINER_COPY\
+    "Copying container"
 
 #endif // STRINGS_DEFS_H

@@ -78,9 +78,9 @@ OutputIterator
 copy(InputIterator _first, InputIterator _last, OutputIterator _d_first)
 {
     static_assert(traits::is_input_iterator<InputIterator>::value,
-                  TEMPLATE_ARG_NOT_INPUT_ITERATOR);
+                  C8_STAT__TEMPLATE_ARG__ITER__NOT_INPUT_ITERATOR);
     static_assert(traits::is_output_iterator<OutputIterator>::value,
-                  TEMPLATE_ARG_NOT_OUTPUT_ITERATOR);
+                  C8_STAT__TEMPLATE_ARG__ITER__NOT_OUTPUT_ITERATOR);
 
     while (_first != _last)
     {
@@ -98,9 +98,9 @@ copy_if(InputIterator _first,
         Predicator _pred)
 {
     static_assert(traits::is_input_iterator<InputIterator>::value,
-                  TEMPLATE_ARG_NOT_INPUT_ITERATOR);
+                  C8_STAT__TEMPLATE_ARG__ITER__NOT_INPUT_ITERATOR);
     static_assert(traits::is_output_iterator<OutputIterator>::value,
-                  TEMPLATE_ARG_NOT_OUTPUT_ITERATOR);
+                  C8_STAT__TEMPLATE_ARG__ITER__NOT_OUTPUT_ITERATOR);
 
     while (_first != _last)
     {
