@@ -1,4 +1,4 @@
-namespace saber
+﻿namespace saber
 {
 
 template <typename Key,
@@ -76,6 +76,10 @@ public:
     template <typename InputIterator>
     void insert(InputIterator _first, InputIterator _last);
     void insert(initializer_list<value_type> _ilist);
+
+    iterator erase(const_iterator _pos);
+    iterator erase(const_iterator _first, const_iterator _last);
+    size_type erase(const value_type& _value);
 
     void swap(set& _another);
     void clear() noexcept;

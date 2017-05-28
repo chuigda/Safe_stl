@@ -433,7 +433,7 @@ list<T, Allocator>::emplace(const_iterator _position, Args&&... _args)
 template <typename T, typename Allocator>
 template <typename... Args>
 typename list<T, Allocator>::iterator
-list<T, Allocator>::emplace_back(Args&&... _args)
+list<T, Allocator>::emplace_back(Args&&... _args):
 {
     emplace(cend(), std::forward<Args>(_args)...);
 }
