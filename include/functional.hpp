@@ -45,6 +45,29 @@ struct less<void>
     }
 };
 
+
+// just for fun.
+template <typename T = void, typename LessPredicator = void>
+struct c8_equivalent
+{
+    constexpr bool operator() (const T& _a, const T& _b,
+                               const LessPredicator& _less_pred) const
+    { return (!_less_pred(_a, _b)) && (!_less_pred(_b, _a)); }
+};
+
+template <>
+struct c8_equivalent<void, void>
+{
+    template <typename A, typename B, typename LessPredicator>
+    constexpr auto operator() (A&& _a, B&& _b,
+                               const LessPredicator& _less_pred) const
+        ->
+        decltype( (! _less_pred(std::forward<A>(_a), std::forward<B>(_b)) ) &&
+                  (! _less_pred(std::forward<B>(_b), std::forward<A>(_a)) ) )
+    { return (!_less_pred(std::forward<A>(_a), std::forward<B>(_b)))
+          && (!_less_pred(std::forward<B>(_b), std::forward<A>(_a))); }
+};
+
 } // namespace saber
 
 #endif // FUNCTIONAL_HPP
