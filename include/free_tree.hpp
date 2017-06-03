@@ -48,22 +48,23 @@ public:
 
 private:
     friend class tree_iterator;
-    struct tree_node_base
+
+    template <typename TreeNode>
+    struct tree_node_base_proxy
     {
-        enum class side_as_child : char
-        {
-            LeftSide,
-            RightSide
-        }
-        side;
+        tree_node_base_proxy() = default;
+        ~tree_node_base_proxy() = default;
 
-        tree_node_base() = default;
-        ~tree_node_base() = default;
+        TreeNode *left_child = nullptr;
+        TreeNode *right_child = nullptr;
+        TreeNode *parent = nullptr;
 
-        tree_node_base *left_child = nullptr;
-        tree_node_base *right_child = nullptr;
-        tree_node_base *parent = nullptr;
+        bool is_left_child(void) const
+        { return parent->left_child == this; }
     };
+
+    struct tree_node;
+    using tree_node_base = tree_node_base_proxy<tree_node>;
 
     struct tree_node : public tree_node_base
     {
@@ -83,6 +84,11 @@ private:
     allocator_type alloc;
     node_allocator_type node_alloc;
     tree_node_base *root;
+
+    void remove_tree_node(tree_node *_node);
+    void unplug_tree_node(tree_node *_node);
+    tree_node* find_leftmost_node(tree_node *_root);
+    void destroy_tree(tree_node *_root);
 }; // class saber::free_tree
 
 
@@ -127,15 +133,15 @@ free_tree<IT, IC, AL, DUP>::free_tree(const IC& _comp, const AL& _alloc) :
     node_alloc(alloc)
 {
     root = new tree_node_base();
-    root->parent = root;
-    root->right_child = root;
-    root->left_child = root;
+    root->parent = reinterpret_cast<tree_node*>(root);
+    root->right_child = reinterpret_cast<tree_node*>(root);
+    root->left_child = reinterpret_cast<tree_node*>(root);
 }
 
 template <typename IT, typename IC, typename AL, bool DUP>
 free_tree<IT, IC, AL, DUP>::~free_tree()
 {
-    // On hold.
+    if (root->left_child != root) destroy_tree(root->left_child);
     delete root;
 }
 
@@ -151,8 +157,7 @@ free_tree<IT, IC, AL, DUP>::emplace(Args&& ..._args)
     if (root->left_child == root)
     {
         root->left_child = new_node;
-        new_node->parent = root;
-        new_node->side = tree_node_base::side_as_child::LeftSide;
+        new_node->parent = reinterpret_cast<tree_node*>(root);;
 
         return pair<tree_iterator, bool>(
                     tree_iterator(root->left_child),
@@ -160,16 +165,14 @@ free_tree<IT, IC, AL, DUP>::emplace(Args&& ..._args)
     }
     else
     {
-        for (tree_node_base *node_iter = root->left_child;;)
+        for (tree_node *node_iter = root->left_child;;)
         {
-            if (less_comp(new_node->item,
-                          reinterpret_cast<tree_node*>(node_iter)->item))
+            if (less_comp(new_node->item, node_iter->item))
             {
                 if (node_iter->left_child == nullptr)
                 {
                     node_iter->left_child = new_node;
                     new_node->parent = node_iter;
-                    new_node->side = tree_node_base::side_as_child::LeftSide;
 
                     return pair<tree_iterator, bool>(
                                 tree_iterator(node_iter->left_child),
@@ -180,14 +183,12 @@ free_tree<IT, IC, AL, DUP>::emplace(Args&& ..._args)
                     node_iter = node_iter->left_child;
                 }
             }
-            else if (less_comp(reinterpret_cast<tree_node*>(node_iter)->item,
-                               new_node->item))
+            else if (less_comp(node_iter->item, new_node->item))
             {
                 if (node_iter->right_child == nullptr)
                 {
                     node_iter->right_child = new_node;
                     new_node->parent = node_iter;
-                    new_node->side = tree_node_base::side_as_child::RightSide;
 
                     return pair<tree_iterator, bool>(
                                 tree_iterator(node_iter->right_child),
@@ -200,7 +201,7 @@ free_tree<IT, IC, AL, DUP>::emplace(Args&& ..._args)
             }
             else
             {
-                reinterpret_cast<tree_node*>(node_iter)->count++;
+                node_iter->count++;
                 destroy_at(new_node);
                 allocator_traits<node_allocator_type>::deallocate(node_alloc,
                                                                   new_node,
@@ -211,6 +212,43 @@ free_tree<IT, IC, AL, DUP>::emplace(Args&& ..._args)
             }
         }
     }
+}
+
+template <typename IT, typename IC, typename AL, bool DUP>
+typename free_tree<IT, IC, AL, DUP>::tree_iterator
+free_tree<IT, IC, AL, DUP>::find(const IT &_key)
+{
+    if (begin() == end())
+    {
+        return end();
+    }
+    tree_node *node_it = root->left_child;
+    while (node_it != nullptr)
+    {
+        if (less_comp(node_it->item, _key))
+        {
+            node_it = node_it->right_child;
+        }
+        else if (less_comp(_key, node_it->item))
+        {
+            node_it = node_it->left_child;
+        }
+        else
+        {
+            return tree_iterator(node_it);
+        }
+    }
+    return end();
+}
+
+template <typename IT, typename IC, typename AL, bool DUP>
+typename free_tree<IT, IC, AL, DUP>::tree_iterator
+free_tree<IT, IC, AL, DUP>::erase(tree_iterator _pos)
+{
+    tree_iterator ret = _pos;
+    ++ret;
+    remove_tree_node(reinterpret_cast<tree_node*>(_pos.actual_node));
+    return ret;
 }
 
 template <typename IT, typename IC, typename AL, bool DUP>
@@ -233,6 +271,93 @@ free_tree<IT, IC, AL, DUP>::end() noexcept
     return tree_iterator(root);
 }
 
+template <typename IT, typename IC, typename AL, bool DUP>
+void
+free_tree<IT, IC, AL, DUP>::remove_tree_node(tree_node *_node)
+{
+    unplug_tree_node(_node);
+    destroy_at(reinterpret_cast<tree_node*>(_node));
+    allocator_traits<node_allocator_type>::deallocate(
+        node_alloc,
+        reinterpret_cast<tree_node*>(_node),
+        1);
+}
+
+template <typename IT, typename IC, typename AL, bool DUP>
+void
+free_tree<IT, IC, AL, DUP>::unplug_tree_node(tree_node *_node)
+{
+    if (_node->left_child == nullptr
+        && _node->right_child == nullptr)
+    {
+        if (_node->is_left_child()) _node->parent->left_child = nullptr;
+        else _node->parent->right_child = nullptr;
+    }
+    else if (_node->left_child == nullptr)
+    {
+        if (_node->is_left_child())
+        {
+            _node->parent->left_child = _node->right_child;
+        }
+        else
+        {
+            _node->parent->right_child = _node->right_child;
+        }
+        _node->right_child->parent = _node->parent;
+    }
+    else if (_node->right_child == nullptr)
+    {
+        if (_node->is_left_child())
+        {
+            _node->parent->left_child = _node->left_child;
+        }
+        else
+        {
+            _node->parent->right_child = _node->left_child;
+        }
+        _node->left_child->parent = _node->parent;
+    }
+    else
+    {
+        tree_node *replacement_node =
+                find_leftmost_node(_node->right_child);
+
+        unplug_tree_node(replacement_node);
+        replacement_node->left_child = _node->left_child;
+        _node->left_child->parent = replacement_node;
+        replacement_node->right_child = _node->right_child;
+        _node->right_child->parent = replacement_node;
+        replacement_node->parent = _node->parent;
+
+        (_node->is_left_child() ?
+            replacement_node->parent->left_child :
+            replacement_node->parent->right_child
+        ) = replacement_node;
+    }
+
+    _node->parent = nullptr;
+    _node->left_child = nullptr;
+    _node->right_child = nullptr;
+}
+
+template <typename IT, typename IC, typename AL, bool DUP>
+typename free_tree<IT, IC, AL, DUP>::tree_node*
+free_tree<IT, IC, AL, DUP>::find_leftmost_node(tree_node *_root)
+{
+    while (_root->left_child != nullptr) _root = _root->left_child;
+    return _root;
+}
+
+template <typename IT, typename IC, typename AL, bool DUP>
+void
+free_tree<IT, IC, AL, DUP>::destroy_tree(tree_node *_root)
+{
+    if (_root->left_child) destroy_tree(_root->left_child);
+    if (_root->right_child) destroy_tree(_root->right_child);
+    destroy_at(_root);
+    allocator_traits<node_allocator_type>::deallocate(node_alloc, _root, 1);
+}
+
 
 
 template <typename IT, typename IC, typename AL, bool DUP>
@@ -247,6 +372,7 @@ typename free_tree<IT, IC, AL, DUP>::tree_iterator&
 free_tree<IT, IC, AL, DUP>::tree_iterator::operator++ ()
 {
     // This algorithm is also copy-pasted from EA-STL.
+    // Thanks to EA-STL. without its help, I can't have things done so easy.
     if (actual_node->right_child != nullptr)
     {
         actual_node = actual_node->right_child;
@@ -258,7 +384,7 @@ free_tree<IT, IC, AL, DUP>::tree_iterator::operator++ ()
     }
     else
     {
-        tree_node_base *node_iter = actual_node->parent;
+        tree_node *node_iter = actual_node->parent;
 
         while (actual_node == node_iter->right_child)
         {
