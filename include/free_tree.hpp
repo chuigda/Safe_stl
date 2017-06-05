@@ -94,11 +94,14 @@ class free_tree<IT, IC, AL>::tree_iterator
 {
     friend class free_tree;
 public:
+    using iterator_category = std::bidirectional_iterator_tag;
     using value_type      = typename free_tree::value_type;
+    using pointer         = typename free_tree::pointer;
     using reference       = typename free_tree::reference;
     using const_reference = typename free_tree::const_reference;
     using size_type       = typename free_tree::size_type;
     using difference_type = typename free_tree::difference_type;
+
 
     explicit tree_iterator() = default;
     ~tree_iterator() = default;
@@ -378,13 +381,11 @@ free_tree<IT, IC, AL>::tree_iterator::operator++ ()
     else
     {
         tree_node *node_iter = actual_node->parent;
-
         while (actual_node == node_iter->right_child)
         {
             actual_node = node_iter;
             node_iter = node_iter->parent;
         }
-
         if (actual_node->right_child != node_iter)
         {
             actual_node = node_iter;
@@ -398,12 +399,30 @@ template <typename IT, typename IC, typename AL>
 typename free_tree<IT, IC, AL>::tree_iterator&
 free_tree<IT, IC, AL>::tree_iterator::operator-- ()
 {
-    if (this == get_from->begin())
+    if (*this == get_from->begin())
     {
         stl_panic(C8_DYN__ITER__ITERATOR_OVERFLOW);
     }
 
-#warning this part is still incomplete
+    if (actual_node->left_child)
+    {
+        actual_node = actual_node->left_child;
+        while (actual_node->right_child)
+        {
+            actual_node = actual_node->right_child;
+        }
+    }
+    else
+    {
+        tree_node *node_iter = actual_node->parent;
+        while (actual_node == node_iter->left_child)
+        {
+            actual_node = node_iter;
+            node_iter = node_iter->parent;
+        }
+        actual_node = node_iter;
+    }
+    return *this;
 }
 
 template <typename IT, typename IC, typename AL>

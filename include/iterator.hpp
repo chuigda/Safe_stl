@@ -264,11 +264,11 @@ class reverse_iterator
                   C8_STAT__TEMPLATE_ARG__ITER__NOT_BIDIRECTIONAL_ITERATOR);
 
 public:
-    using iterator_category = typename std::iterator_traits<Iterator>::iterator_category;
-    using value_type        = typename std::iterator_traits<Iterator>::value_type;
-    using pointer           = typename std::iterator_traits<Iterator>::pointer;
-    using reference         = typename std::iterator_traits<Iterator>::reference;
-    using difference_type   = typename std::iterator_traits<Iterator>::difference_type;
+    using iterator_category = typename iterator_traits<Iterator>::iterator_category;
+    using value_type        = typename iterator_traits<Iterator>::value_type;
+    using pointer           = typename iterator_traits<Iterator>::pointer;
+    using reference         = typename iterator_traits<Iterator>::reference;
+    using difference_type   = typename iterator_traits<Iterator>::difference_type;
     using iterator_type     = Iterator;
 
     reverse_iterator(void) = default;
