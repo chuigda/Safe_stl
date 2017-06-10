@@ -244,6 +244,48 @@ set<Key, Compare, Allocator>::cend() const noexcept
 }
 
 template <typename Key, typename Compare, typename Allocator>
+typename set<Key, Compare, Allocator>::reverse_iterator
+set<Key, Compare, Allocator>::rbegin() noexcept
+{
+    return reverse_iterator(end());
+}
+
+template <typename Key, typename Compare, typename Allocator>
+typename set<Key, Compare, Allocator>::reverse_iterator
+set<Key, Compare, Allocator>::rend() noexcept
+{
+    return reverse_iterator(begin());
+}
+
+template <typename Key, typename Compare, typename Allocator>
+typename set<Key, Compare, Allocator>::const_reverse_iterator
+set<Key, Compare, Allocator>::rbegin() const noexcept
+{
+    return reverse_iterator(cend());
+}
+
+template <typename Key, typename Compare, typename Allocator>
+typename set<Key, Compare, Allocator>::const_reverse_iterator
+set<Key, Compare, Allocator>::rend() const noexcept
+{
+    return reverse_iterator(cbegin());
+}
+
+template <typename Key, typename Compare, typename Allocator>
+typename set<Key, Compare, Allocator>::const_reverse_iterator
+set<Key, Compare, Allocator>::crbegin() const noexcept
+{
+    return rbegin();
+}
+
+template <typename Key, typename Compare, typename Allocator>
+typename set<Key, Compare, Allocator>::const_reverse_iterator
+set<Key, Compare, Allocator>::crend() const noexcept
+{
+    return rend();
+}
+
+template <typename Key, typename Compare, typename Allocator>
 typename set<Key, Compare, Allocator>::size_type
 set<Key, Compare, Allocator>::size() const noexcept
 {
@@ -274,11 +316,77 @@ set<Key, Compare, Allocator>::emplace(Args&& ...args)
 }
 
 template <typename Key, typename Compare, typename Allocator>
+template <typename... Args>
+typename set<Key, Compare, Allocator>::iterator
+set<Key, Compare, Allocator>::emplace_hint(const_iterator, Args&& ...args)
+{
+    return emplace(std::forward<Args>(args)...).first;
+}
+
+template <typename Key, typename Compare, typename Allocator>
+pair<typename set<Key, Compare, Allocator>::iterator, bool>
+set<Key, Compare, Allocator>::insert(const value_type &_value)
+{
+    auto result = p_tree_impl->insert(_value);
+    return pair<iterator, bool>(iterator(result.first, this), result.second);
+}
+
+template <typename Key, typename Compare, typename Allocator>
+pair<typename set<Key, Compare, Allocator>::iterator, bool>
+set<Key, Compare, Allocator>::insert(value_type &&_value)
+{
+    auto result = p_tree_impl->insert(std::move(_value));
+    return pair<iterator, bool>(iterator(result.first, this), result.second);
+}
+
+template <typename Key, typename Compare, typename Allocator>
+typename set<Key, Compare, Allocator>::iterator
+set<Key, Compare, Allocator>::insert(const_iterator, const value_type &_value)
+{
+    return insert(_value).first;
+}
+
+template <typename Key, typename Compare, typename Allocator>
+typename set<Key, Compare, Allocator>::const_iterator
+set<Key, Compare, Allocator>::insert(const_iterator, value_type &&_value)
+{
+    return insert(std::move(_value)).first;
+}
+
+template <typename Key, typename Compare, typename Allocator>
+template <typename InputIterator>
+void
+set<Key, Compare, Allocator>::insert(InputIterator _first, InputIterator _last)
+{
+    for (; _first != _last; ++_first) insert(*_first);
+}
+
+template <typename Key, typename Compare, typename Allocator>
+void
+set<Key, Compare, Allocator>::insert(initializer_list<value_type> _ilist)
+{
+    insert(_ilist.begin(), _ilist.end());
+}
+
+template <typename Key, typename Compare, typename Allocator>
+typename set<Key, Compare, Allocator>::iterator
+set<Key, Compare, Allocator>::erase(const_iterator _pos)
+{
+}
+
+template <typename Key, typename Compare, typename Allocator>
+typename set<Key, Compare, Allocator>::size_type
+set<Key, Compare, Allocator>::erase(const value_type &_value)
+{
+}
+
+template <typename Key, typename Compare, typename Allocator>
 void
 set<Key, Compare, Allocator>::clear() noexcept
 {
     p_tree_impl->clear();
 }
+
 
 
 template <typename Key, typename Compare, typename Allocator>
