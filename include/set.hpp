@@ -1,4 +1,10 @@
-﻿namespace saber
+﻿#include "safe_stl_general.hpp"
+#include "functional.hpp"
+#include "memory.hpp"
+#include "free_tree.hpp"
+#include "iterator.hpp"
+
+namespace saber
 {
 
 template <typename Key,
@@ -20,8 +26,8 @@ public:
     class iterator;
     class const_iterator;
 
-    using reverse_iterator       = reverse_iterator<iterator>;
-    using const_reverse_iterator = reverse_iterator<const_iterator>;
+    using reverse_iterator       = saber::reverse_iterator<iterator>;
+    using const_reverse_iterator = saber::reverse_iterator<const_iterator>;
 
     using pointer       = typename allocator_traits<Allocator>::pointer;
     using const_pointer = typename allocator_traits<Allocator>::const_pointer;
@@ -97,6 +103,305 @@ public:
     iterator upper_bound(const key_type& _key);
     const_iterator upper_bound(const key_type& _key) const;
 
+private:
+    using tree_type = free_tree<Key, Compare, Allocator>;
+    using tree_iterator =
+        typename free_tree<Key, Compare, Allocator>::tree_iterator;
+
+    tree_type *p_tree_impl;
 }; // class saber::set
+
+
+
+template <typename Key, typename Compare, typename Allocator>
+class set<Key, Compare, Allocator>::iterator
+{
+    friend class set;
+public:
+    using iterator_category = std::bidirectional_iterator_tag;
+    using value_type        = typename set::value_type;
+    using pointer           = typename set::pointer;
+    using reference         = typename set::reference;
+    using const_reference   = typename set::const_reference;
+    using size_type         = typename set::size_type;
+    using difference_type   = typename set::difference_type;
+
+    explicit iterator() = default;
+    ~iterator() = default;
+
+    reference operator* (void);
+    const_reference operator* (void) const;
+
+    iterator& operator++(void);
+    iterator& operator--(void);
+    iterator operator++(int);
+    iterator operator--(int);
+
+    bool operator== (const iterator& _another) const;
+    bool operator!= (const iterator& _another) const;
+
+private:
+    using tree_iterator = typename set::tree_type::tree_iterator;
+
+    iterator(const tree_iterator& _actual_iter, const set* _get_from) :
+        actual_iter(_actual_iter), get_from(_get_from) {}
+
+    tree_iterator actual_iter;
+    const set *get_from = nullptr;
+};
+
+template <typename Key, typename Compare, typename Allocator>
+class set<Key, Compare, Allocator>::const_iterator
+{
+    friend class set;
+public:
+    using iterator_category = std::bidirectional_iterator_tag;
+    using value_type        = typename set::value_type;
+    using pointer           = typename set::pointer;
+    using reference         = typename set::reference;
+    using const_reference   = typename set::const_reference;
+    using size_type         = typename set::size_type;
+    using difference_type   = typename set::difference_type;
+
+    explicit const_iterator() = default;
+    ~const_iterator() = default;
+
+    const_reference operator* (void) const;
+
+    const_iterator& operator++ (void);
+    const_iterator& operator-- (void);
+    const_iterator operator++ (int);
+    const_iterator operator-- (int);
+
+    bool operator== (const const_iterator& _another) const;
+    bool operator!= (const const_iterator& _another) const;
+
+private:
+    using tree_iterator = typename set::tree_type::tree_iterator;
+
+    const_iterator(const tree_iterator& _actual_iter, const set* _get_from) :
+        actual_iter(_actual_iter), get_from(_get_from)
+    {}
+
+    tree_iterator actual_iter;
+    const set *get_from = nullptr;
+};
+
+
+
+template <typename Key, typename Compare, typename Allocator>
+set<Key, Compare, Allocator>::set(const Compare& _comp, const Allocator& _alloc)
+{
+    p_tree_impl = new tree_type(_comp, _alloc);
+}
+
+template <typename Key, typename Compare, typename Allocator>
+set<Key, Compare, Allocator>::~set()
+{
+    delete p_tree_impl;
+}
+
+template <typename Key, typename Compare, typename Allocator>
+typename set<Key, Compare, Allocator>::iterator
+set<Key, Compare, Allocator>::begin() noexcept
+{
+    return iterator(p_tree_impl->begin(), this);
+}
+
+template <typename Key, typename Compare, typename Allocator>
+typename set<Key, Compare, Allocator>::iterator
+set<Key, Compare, Allocator>::end() noexcept
+{
+    return iterator(p_tree_impl->end(), this);
+}
+
+template <typename Key, typename Compare, typename Allocator>
+typename set<Key, Compare, Allocator>::const_iterator
+set<Key, Compare, Allocator>::begin() const noexcept
+{
+    return const_iterator(p_tree_impl->begin(), this);
+}
+
+template <typename Key, typename Compare, typename Allocator>
+typename set<Key, Compare, Allocator>::const_iterator
+set<Key, Compare, Allocator>::end() const noexcept
+{
+    return const_iterator(p_tree_impl->end(), this);
+}
+
+template <typename Key, typename Compare, typename Allocator>
+typename set<Key, Compare, Allocator>::const_iterator
+set<Key, Compare, Allocator>::cbegin() const noexcept
+{
+    return begin();
+}
+
+template <typename Key, typename Compare, typename Allocator>
+typename set<Key, Compare, Allocator>::const_iterator
+set<Key, Compare, Allocator>::cend() const noexcept
+{
+    return end();
+}
+
+template <typename Key, typename Compare, typename Allocator>
+typename set<Key, Compare, Allocator>::size_type
+set<Key, Compare, Allocator>::size() const noexcept
+{
+    return distance(cbegin(), cend());
+}
+
+template <typename Key, typename Compare, typename Allocator>
+typename set<Key, Compare, Allocator>::size_type
+set<Key, Compare, Allocator>::max_size() const noexcept
+{
+    return std::numeric_limits<size_type>::max();
+}
+
+template <typename Key, typename Compare, typename Allocator>
+bool
+set<Key, Compare, Allocator>::empty() const noexcept
+{
+    return cbegin() == cend();
+}
+
+template <typename Key, typename Compare, typename Allocator>
+template <typename... Args>
+pair<typename set<Key, Compare, Allocator>::iterator, bool>
+set<Key, Compare, Allocator>::emplace(Args&& ...args)
+{
+    auto result = p_tree_impl->emplace(std::forward<Args>(args)...);
+    return pair<iterator, bool>(iterator(result.first, this), result.second);
+}
+
+template <typename Key, typename Compare, typename Allocator>
+void
+set<Key, Compare, Allocator>::clear() noexcept
+{
+    p_tree_impl->clear();
+}
+
+
+template <typename Key, typename Compare, typename Allocator>
+typename set<Key, Compare, Allocator>::iterator::reference
+set<Key, Compare, Allocator>::iterator::operator* ()
+{
+    return *actual_iter;
+}
+
+template <typename Key, typename Compare, typename Allocator>
+typename set<Key, Compare, Allocator>::iterator::const_reference
+set<Key, Compare, Allocator>::iterator::operator* () const
+{
+    return *actual_iter;
+}
+
+template <typename Key, typename Compare, typename Allocator>
+typename set<Key, Compare, Allocator>::iterator&
+set<Key, Compare, Allocator>::iterator::operator++ ()
+{
+    ++actual_iter;
+    return *this;
+}
+
+template <typename Key, typename Compare, typename Allocator>
+typename set<Key, Compare, Allocator>::iterator&
+set<Key, Compare, Allocator>::iterator::operator--()
+{
+    --actual_iter;
+}
+
+template <typename Key, typename Compare, typename Allocator>
+typename set<Key, Compare, Allocator>::iterator
+set<Key, Compare, Allocator>::iterator::operator++ (int)
+{
+    iterator ret = *this;
+    operator++();
+    return ret;
+}
+
+template <typename Key, typename Compare, typename Allocator>
+typename set<Key, Compare, Allocator>::iterator
+set<Key, Compare, Allocator>::iterator::operator-- (int)
+{
+    iterator ret = *this;
+    operator--();
+    return ret;
+}
+
+template <typename Key, typename Compare, typename Allocator>
+bool
+set<Key, Compare, Allocator>::iterator::operator== (
+    const iterator& _another) const
+{
+    return actual_iter == _another.actual_iter;
+}
+
+template <typename Key, typename Compare, typename Allocator>
+bool
+set<Key, Compare, Allocator>::iterator::operator!= (
+    const iterator& _another) const
+{
+    return !operator== (_another);
+}
+
+
+
+template <typename Key, typename Compare, typename Allocator>
+typename set<Key, Compare, Allocator>::const_iterator::const_reference
+set<Key, Compare, Allocator>::const_iterator::operator* () const
+{
+    return *actual_iter;
+}
+
+template <typename Key, typename Compare, typename Allocator>
+typename set<Key, Compare, Allocator>::const_iterator&
+set<Key, Compare, Allocator>::const_iterator::operator++ ()
+{
+    ++actual_iter;
+    return *this;
+}
+
+template <typename Key, typename Compare, typename Allocator>
+typename set<Key, Compare, Allocator>::const_iterator&
+set<Key, Compare, Allocator>::const_iterator::operator-- ()
+{
+    --actual_iter;
+    return *this;
+}
+
+template <typename Key, typename Compare, typename Allocator>
+typename set<Key, Compare, Allocator>::const_iterator
+set<Key, Compare, Allocator>::const_iterator::operator++ (int)
+{
+    const_iterator ret = *this;
+    operator++();
+    return ret;
+}
+
+template <typename Key, typename Compare, typename Allocator>
+typename set<Key, Compare, Allocator>::const_iterator
+set<Key, Compare, Allocator>::const_iterator::operator-- (int)
+{
+    const_iterator ret = *this;
+    operator--();
+    return ret;
+}
+
+template <typename Key, typename Compare, typename Allocator>
+bool
+set<Key, Compare, Allocator>::const_iterator::operator== (
+    const const_iterator& _another) const
+{
+    return actual_iter == _another.actual_iter;
+}
+
+template <typename Key, typename Compare, typename Allocator>
+bool
+set<Key, Compare, Allocator>::const_iterator::operator!= (
+    const const_iterator& _another) const
+{
+    return !operator== (_another);
+}
+
 
 } // namespace saber

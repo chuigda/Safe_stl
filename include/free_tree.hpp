@@ -31,8 +31,7 @@ public:
     using pointer       = typename allocator_traits<Allocator>::pointer;
     using const_pointer = typename allocator_traits<Allocator>::const_pointer;
 
-    explicit free_tree(const ItemCompare& _comp = ItemCompare(),
-                       const Allocator& _alloc = Allocator());
+    explicit free_tree(const ItemCompare& _comp, const Allocator& _alloc);
     ~free_tree();
 
     template <typename... Args>
@@ -42,6 +41,8 @@ public:
 
     tree_iterator begin() noexcept;
     tree_iterator end() noexcept;
+
+    void clear() noexcept;
 
 private:
     friend class tree_iterator;
@@ -102,11 +103,10 @@ public:
     using size_type       = typename free_tree::size_type;
     using difference_type = typename free_tree::difference_type;
 
-
     explicit tree_iterator() = default;
     ~tree_iterator() = default;
 
-    reference operator* (void);
+    reference operator* (void) const;
     tree_iterator& operator++ (void);
     tree_iterator& operator-- (void);
 
@@ -115,10 +115,10 @@ public:
 
 private:
     using tree_node_base = typename free_tree::tree_node_base;
-    explicit tree_iterator(tree_node_base* _node, free_tree* _get_from) :
-        actual_node(_node), get_from(_get_from) {}
+    explicit tree_iterator(tree_node_base* _node) :
+        actual_node(_node)
+    {}
     tree_node_base *actual_node = nullptr;
-    free_tree *get_from = nullptr;
 }; // class saber::free_tree::tree_iterator
 
 
@@ -156,42 +156,40 @@ free_tree<IT, IC, AL>::emplace(Args&& ..._args)
         root->left_child = new_node;
         new_node->parent = reinterpret_cast<tree_node*>(root);;
 
-        return pair<tree_iterator, bool>(
-                    tree_iterator(root->left_child, this),
-                    true);
+        return pair<tree_iterator, bool>(tree_iterator(root->left_child), true);
     }
     else
     {
-        for (tree_node *node_iter = root->left_child;;)
+        for (tree_node *node_it = root->left_child;;)
         {
-            if (less_comp(new_node->item, node_iter->item))
+            if (less_comp(new_node->item, node_it->item))
             {
-                if (node_iter->left_child == nullptr)
+                if (node_it->left_child == nullptr)
                 {
-                    node_iter->left_child = new_node;
-                    new_node->parent = node_iter;
+                    node_it->left_child = new_node;
+                    new_node->parent = node_it;
 
                     return pair<tree_iterator, bool>(
-                        tree_iterator(node_iter->left_child, this), true);
+                        tree_iterator(node_it->left_child), true);
                 }
                 else
                 {
-                    node_iter = node_iter->left_child;
+                    node_it = node_it->left_child;
                 }
             }
-            else if (less_comp(node_iter->item, new_node->item))
+            else if (less_comp(node_it->item, new_node->item))
             {
-                if (node_iter->right_child == nullptr)
+                if (node_it->right_child == nullptr)
                 {
-                    node_iter->right_child = new_node;
-                    new_node->parent = node_iter;
+                    node_it->right_child = new_node;
+                    new_node->parent = node_it;
 
                     return pair<tree_iterator, bool>(
-                        tree_iterator(node_iter->right_child, this), true);
+                        tree_iterator(node_it->right_child), true);
                 }
                 else
                 {
-                    node_iter = node_iter->right_child;
+                    node_it = node_it->right_child;
                 }
             }
             else
@@ -201,7 +199,7 @@ free_tree<IT, IC, AL>::emplace(Args&& ..._args)
                     node_alloc, new_node, 1);
                 return
                     pair<tree_iterator, bool>(
-                        tree_iterator(node_iter, this), false);
+                        tree_iterator(node_it), false);
             }
         }
     }
@@ -228,7 +226,7 @@ free_tree<IT, IC, AL>::find(const IT &_key)
         }
         else
         {
-            return tree_iterator(node_it, this);
+            return tree_iterator(node_it);
         }
     }
     return end();
@@ -248,20 +246,28 @@ template <typename IT, typename IC, typename AL>
 typename free_tree<IT, IC, AL>::tree_iterator
 free_tree<IT, IC, AL>::begin() noexcept
 {
-    if (root->left_child == root) return tree_iterator(root, this);
+    if (root->left_child == root) return tree_iterator(root);
 
     tree_node_base *node_it;
     for(node_it = root->left_child;
         node_it->left_child != nullptr;
         node_it = node_it->left_child);
-    return tree_iterator(node_it, this);
+    return tree_iterator(node_it);
 }
 
 template <typename IT, typename IC, typename AL>
 typename free_tree<IT, IC, AL>::tree_iterator
 free_tree<IT, IC, AL>::end() noexcept
 {
-    return tree_iterator(root, this);
+    return tree_iterator(root);
+}
+
+template <typename IT, typename IC, typename AL>
+void
+free_tree<IT, IC, AL>::clear() noexcept
+{
+    if (root->left_child) destroy_tree(root->left_child);
+    root->left_child = nullptr;
 }
 
 template <typename IT, typename IC, typename AL>
@@ -353,7 +359,7 @@ free_tree<IT, IC, AL>::destroy_tree(tree_node *_root)
 
 template <typename IT, typename IC, typename AL>
 typename free_tree<IT, IC, AL>::tree_iterator::reference
-free_tree<IT, IC, AL>::tree_iterator::operator*()
+free_tree<IT, IC, AL>::tree_iterator::operator*() const
 {
     return reinterpret_cast<tree_node*>(actual_node)->item;
 }
@@ -364,11 +370,6 @@ free_tree<IT, IC, AL>::tree_iterator::operator++ ()
 {
     // This algorithm is also copy-pasted from EA-STL.
     // Thanks to EA-STL. without its help, I can't have things done so easy.
-    if (*this == get_from->end())
-    {
-        stl_panic(C8_DYN__ITER__ITERATOR_OVERFLOW);
-    }
-
     if (actual_node->right_child != nullptr)
     {
         actual_node = actual_node->right_child;
@@ -380,15 +381,15 @@ free_tree<IT, IC, AL>::tree_iterator::operator++ ()
     }
     else
     {
-        tree_node *node_iter = actual_node->parent;
-        while (actual_node == node_iter->right_child)
+        tree_node *node_it = actual_node->parent;
+        while (actual_node == node_it->right_child)
         {
-            actual_node = node_iter;
-            node_iter = node_iter->parent;
+            actual_node = node_it;
+            node_it = node_it->parent;
         }
-        if (actual_node->right_child != node_iter)
+        if (actual_node->right_child != node_it)
         {
-            actual_node = node_iter;
+            actual_node = node_it;
         }
     }
 
@@ -399,11 +400,6 @@ template <typename IT, typename IC, typename AL>
 typename free_tree<IT, IC, AL>::tree_iterator&
 free_tree<IT, IC, AL>::tree_iterator::operator-- ()
 {
-    if (*this == get_from->begin())
-    {
-        stl_panic(C8_DYN__ITER__ITERATOR_OVERFLOW);
-    }
-
     if (actual_node->left_child)
     {
         actual_node = actual_node->left_child;
@@ -414,13 +410,13 @@ free_tree<IT, IC, AL>::tree_iterator::operator-- ()
     }
     else
     {
-        tree_node *node_iter = actual_node->parent;
-        while (actual_node == node_iter->left_child)
+        tree_node *node_it = actual_node->parent;
+        while (actual_node == node_it->left_child)
         {
-            actual_node = node_iter;
-            node_iter = node_iter->parent;
+            actual_node = node_it;
+            node_it = node_it->parent;
         }
-        actual_node = node_iter;
+        actual_node = node_it;
     }
     return *this;
 }
