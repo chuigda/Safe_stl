@@ -1,4 +1,7 @@
-﻿#include "safe_stl_general.hpp"
+﻿#ifndef SET_HPP
+#define SET_HPP
+
+#include "safe_stl_general.hpp"
 #include "functional.hpp"
 #include "memory.hpp"
 #include "free_tree.hpp"
@@ -117,6 +120,7 @@ template <typename Key, typename Compare, typename Allocator>
 class set<Key, Compare, Allocator>::iterator
 {
     friend class set;
+    friend class set::const_iterator;
 public:
     using iterator_category = std::bidirectional_iterator_tag;
     using value_type        = typename set::value_type;
@@ -127,6 +131,7 @@ public:
     using difference_type   = typename set::difference_type;
 
     explicit iterator() = default;
+    iterator(const typename set::const_iterator &_const_iter);
     ~iterator() = default;
 
     reference operator* (void);
@@ -154,6 +159,7 @@ template <typename Key, typename Compare, typename Allocator>
 class set<Key, Compare, Allocator>::const_iterator
 {
     friend class set;
+    friend class set::iterator;
 public:
     using iterator_category = std::bidirectional_iterator_tag;
     using value_type        = typename set::value_type;
@@ -164,6 +170,7 @@ public:
     using difference_type   = typename set::difference_type;
 
     explicit const_iterator() = default;
+    const_iterator(const set::iterator& _mutable_iter);
     ~const_iterator() = default;
 
     const_reference operator* (void) const;
@@ -347,7 +354,7 @@ set<Key, Compare, Allocator>::insert(const_iterator, const value_type &_value)
 }
 
 template <typename Key, typename Compare, typename Allocator>
-typename set<Key, Compare, Allocator>::const_iterator
+typename set<Key, Compare, Allocator>::iterator
 set<Key, Compare, Allocator>::insert(const_iterator, value_type &&_value)
 {
     return insert(std::move(_value)).first;
@@ -372,12 +379,29 @@ template <typename Key, typename Compare, typename Allocator>
 typename set<Key, Compare, Allocator>::iterator
 set<Key, Compare, Allocator>::erase(const_iterator _pos)
 {
+    iterator ret = _pos;
+    ++ret;
+    p_tree_impl->erase(_pos.actual_iter);
+    return ret;
 }
 
 template <typename Key, typename Compare, typename Allocator>
 typename set<Key, Compare, Allocator>::size_type
 set<Key, Compare, Allocator>::erase(const value_type &_value)
 {
+    const_iterator erase_pos = const_cast<const set*>(this)->find(_value);
+
+    if (erase_pos == cend())
+        return 0;
+    erase(erase_pos);
+    return 1;
+}
+
+template <typename Key, typename Compare, typename Allocator>
+void
+set<Key, Compare, Allocator>::swap(set &_another)
+{
+    ::swap(p_tree_impl, _another.p_tree_impl);
 }
 
 template <typename Key, typename Compare, typename Allocator>
@@ -387,7 +411,27 @@ set<Key, Compare, Allocator>::clear() noexcept
     p_tree_impl->clear();
 }
 
+template <typename Key, typename Compare, typename Allocator>
+typename set<Key, Compare, Allocator>::iterator
+set<Key, Compare, Allocator>::find(const key_type &_key)
+{
+    return iterator(p_tree_impl->find(_key));
+}
 
+template <typename Key, typename Compare, typename Allocator>
+typename set<Key, Compare, Allocator>::const_iterator
+set<Key, Compare, Allocator>::find(const key_type &_key) const
+{
+    return const_iterator(p_tree_impl->find(_key), this);
+}
+
+
+
+template <typename Key, typename Compare, typename Allocator>
+set<Key, Compare, Allocator>::iterator::iterator(
+        const typename set::const_iterator& _const_iter) :
+    iterator(_const_iter.actual_iter, _const_iter.get_from)
+{}
 
 template <typename Key, typename Compare, typename Allocator>
 typename set<Key, Compare, Allocator>::iterator::reference
@@ -511,5 +555,6 @@ set<Key, Compare, Allocator>::const_iterator::operator!= (
     return !operator== (_another);
 }
 
-
 } // namespace saber
+
+#endif // MAP_HPP

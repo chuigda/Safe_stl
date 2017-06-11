@@ -145,7 +145,7 @@ free_tree<IT, IC, AL>::~free_tree()
 }
 
 template <typename IT, typename IC, typename AL>
-pair<typename free_tree<IT, IC, AL>::iterator, bool>
+pair<typename free_tree<IT, IC, AL>::tree_iterator, bool>
 free_tree<IT, IC, AL>::insert(const IT &_item)
 {
     if (root->left_child == nullptr)
@@ -212,7 +212,7 @@ free_tree<IT, IC, AL>::insert(const IT &_item)
 }
 
 template <typename IT, typename IC, typename AL>
-pair<typename free_tree<IT, IC, AL>::iterator, bool>
+pair<typename free_tree<IT, IC, AL>::tree_iterator, bool>
 free_tree<IT, IC, AL>::insert(IT &&_item)
 {
     if (root->left_child == nullptr)
