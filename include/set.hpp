@@ -108,8 +108,7 @@ public:
 
 private:
     using tree_type = free_tree<Key, Compare, Allocator>;
-    using tree_iterator =
-        typename free_tree<Key, Compare, Allocator>::tree_iterator;
+    using tree_iterator = typename tree_type::tree_iterator;
 
     tree_type *p_tree_impl;
 }; // class saber::set
@@ -146,7 +145,7 @@ public:
     bool operator!= (const iterator& _another) const;
 
 private:
-    using tree_iterator = typename set::tree_type::tree_iterator;
+    using tree_iterator = typename set::tree_iterator;
 
     iterator(const tree_iterator& _actual_iter, const set* _get_from) :
         actual_iter(_actual_iter), get_from(_get_from) {}
@@ -184,11 +183,10 @@ public:
     bool operator!= (const const_iterator& _another) const;
 
 private:
-    using tree_iterator = typename set::tree_type::tree_iterator;
+    using tree_iterator = typename set::tree_iterator;
 
     const_iterator(const tree_iterator& _actual_iter, const set* _get_from) :
-        actual_iter(_actual_iter), get_from(_get_from)
-    {}
+        actual_iter(_actual_iter), get_from(_get_from) {}
 
     tree_iterator actual_iter;
     const set *get_from = nullptr;
@@ -401,7 +399,7 @@ template <typename Key, typename Compare, typename Allocator>
 void
 set<Key, Compare, Allocator>::swap(set &_another)
 {
-    ::swap(p_tree_impl, _another.p_tree_impl);
+    swap(p_tree_impl, _another.p_tree_impl);
 }
 
 template <typename Key, typename Compare, typename Allocator>
@@ -497,6 +495,12 @@ set<Key, Compare, Allocator>::iterator::operator!= (
 }
 
 
+
+template <typename Key, typename Compare, typename Allocator>
+set<Key, Compare, Allocator>::const_iterator::const_iterator(
+        const set::iterator& _mutable_iterator) :
+    const_iterator(_mutable_iterator.actual_iter, _mutable_iterator.get_from)
+{}
 
 template <typename Key, typename Compare, typename Allocator>
 typename set<Key, Compare, Allocator>::const_iterator::const_reference
