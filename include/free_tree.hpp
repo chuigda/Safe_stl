@@ -222,7 +222,7 @@ free_tree<IT, IC, AL>::insert(IT &&_item)
         construct(new_node, std::move(_item));
 
         root->left_child = new_node;
-        new_node->pare = reinterpret_cast<tree_node*>(root);
+        new_node->parent = reinterpret_cast<tree_node*>(root);
         return pair<tree_iterator, bool>(begin(), true);
     }
     else

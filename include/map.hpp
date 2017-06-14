@@ -49,7 +49,7 @@ public:
         using first_argument_type = value_type;
         using second_argument_type = value_type;
 
-        void operator()(const value_type& _x, const value_type& _y) const
+        bool operator()(const value_type& _x, const value_type& _y) const
         { return comp(_x.first, _y.first); }
     };
 
@@ -88,12 +88,12 @@ public:
     const_reverse_iterator rend() const noexcept;
     const_reverse_iterator crend() const noexcept;
 
-    bool empty();
-    size_type size();
-    size_type max_size();
+    bool empty() const noexcept;
+    size_type size() const noexcept;
+    size_type max_size() const noexcept;
 
     T& operator[] (const key_type& _key);
-    T& operator[] (key_type&& _key);
+    // T& operator[] (key_type&& _key);
 
     T& at(const key_type& _key);
     const T& at(const key_type &_key) const;
@@ -105,10 +105,10 @@ public:
 
     pair<iterator, bool> insert(const value_type& _pair);
     iterator insert(const_iterator _pos, const value_type& _pair);
-    template <typename Pair>
-    pair<iterator, bool> insert(Pair&& _pair);
-    template <typename Pair> iterator
-    insert(const_iterator _pos, Pair&& _pair);
+    // template <typename Pair>
+    // pair<iterator, bool> insert(Pair&& _pair);
+    // template <typename Pair> iterator
+    // insert(const_iterator _pos, Pair&& _pair);
 
     template <typename InputIterator>
     void insert(InputIterator _first, InputIterator _last);
@@ -142,6 +142,7 @@ private:
 
     tree_type *p_tree_impl;
 }; // class map
+
 
 
 template <typename Key, typename T, typename Compare, typename Allocator>
@@ -183,6 +184,8 @@ private:
     const map *get_from = nullptr;
 };
 
+
+
 template <typename Key, typename T, typename Compare, typename Allocator>
 class map<Key, T, Compare, Allocator>::const_iterator
 {
@@ -220,6 +223,152 @@ private:
     tree_iterator actual_iter;
     const map *get_from = nullptr;
 };
+
+
+
+template <typename Key, typename T, typename Compare, typename Allocator>
+map<Key, T, Compare, Allocator>::map(const Compare &_comp,
+                                     const Allocator &_alloc)
+{
+    p_tree_impl = new tree_type(value_compare(_comp), _alloc);
+}
+
+template <typename Key, typename T, typename Compare, typename Allocator>
+map<Key, T, Compare, Allocator>::~map()
+{
+    delete p_tree_impl;
+}
+
+template <typename Key, typename T, typename Compare, typename Allocator>
+typename map<Key, T, Compare, Allocator>::iterator
+map<Key, T, Compare, Allocator>::begin() noexcept
+{
+    return iterator(p_tree_impl->begin(), this);
+}
+
+template <typename Key, typename T, typename Compare, typename Allocator>
+typename map<Key, T, Compare, Allocator>::const_iterator
+map<Key, T, Compare, Allocator>::begin() const noexcept
+{
+    return const_iterator(p_tree_impl->begin(), this);
+}
+
+template <typename Key, typename T, typename Compare, typename Allocator>
+typename map<Key, T, Compare, Allocator>::const_iterator
+map<Key, T, Compare, Allocator>::cbegin() const noexcept
+{
+    return begin();
+}
+
+template <typename Key, typename T, typename Compare, typename Allocator>
+typename map<Key, T, Compare, Allocator>::iterator
+map<Key, T, Compare, Allocator>::end() noexcept
+{
+    return iterator(p_tree_impl->end(), this);
+}
+
+template <typename Key, typename T, typename Compare, typename Allocator>
+typename map<Key, T, Compare, Allocator>::const_iterator
+map<Key, T, Compare, Allocator>::end() const noexcept
+{
+    return const_iterator(p_tree_impl->end(), this);
+}
+
+template <typename Key, typename T, typename Compare, typename Allocator>
+typename map<Key, T, Compare, Allocator>::const_iterator
+map<Key, T, Compare, Allocator>::cend() const noexcept
+{
+    return end();
+}
+
+template <typename Key, typename T, typename Compare, typename Allocator>
+typename map<Key, T, Compare, Allocator>::reverse_iterator
+map<Key, T, Compare, Allocator>::rbegin() noexcept
+{
+    return reverse_iterator(begin());
+}
+
+template <typename Key, typename T, typename Compare, typename Allocator>
+typename map<Key, T, Compare, Allocator>::const_reverse_iterator
+map<Key, T, Compare, Allocator>::rbegin() const noexcept
+{
+    return const_reverse_iterator(begin());
+}
+
+template <typename Key, typename T, typename Compare, typename Allocator>
+typename map<Key, T, Compare, Allocator>::const_reverse_iterator
+map<Key, T, Compare, Allocator>::crbegin() const noexcept
+{
+    return rbegin();
+}
+
+template <typename Key, typename T, typename Compare, typename Allocator>
+typename map<Key, T, Compare, Allocator>::reverse_iterator
+map<Key, T, Compare, Allocator>::rend() noexcept
+{
+    return reverse_iterator(end());
+}
+
+template <typename Key, typename T, typename Compare, typename Allocator>
+typename map<Key, T, Compare, Allocator>::const_reverse_iterator
+map<Key, T, Compare, Allocator>::rend() const noexcept
+{
+    return const_reverse_iterator(end());
+}
+
+template <typename Key, typename T, typename Compare, typename Allocator>
+typename map<Key, T, Compare, Allocator>::const_reverse_iterator
+map<Key, T, Compare, Allocator>::crend() const noexcept
+{
+    return rend();
+}
+
+template <typename Key, typename T, typename Compare, typename Allocator>
+bool
+map<Key, T, Compare, Allocator>::empty() const noexcept
+{
+    return begin() == end();
+}
+
+template <typename Key, typename T, typename Compare, typename Allocator>
+typename map<Key, T, Compare, Allocator>::size_type
+map<Key, T, Compare, Allocator>::size() const noexcept
+{
+    return distance(begin(), end());
+}
+
+template <typename Key, typename T, typename Compare, typename Allocator>
+typename map<Key, T, Compare, Allocator>::size_type
+map<Key, T, Compare, Allocator>::max_size() const noexcept
+{
+    return std::numeric_limits<size_type>::max();
+}
+
+template <typename Key, typename T, typename Compare, typename Allocator>
+T&
+map<Key, T, Compare, Allocator>::operator [](const key_type& _key)
+{
+    value_type the_pair = value_type(_key, mapped_type());
+    pair<iterator, bool> ret_pair = insert(the_pair);
+    return (*(ret_pair.first)).second;
+}
+
+// template <typename Key, typename T, typename Compare, typename Allocator>
+// T&
+// map<Key, T, Compare, Allocator>::operator [](key_type&& _key)
+// {
+//     pair<iterator, bool> ret_pair = insert(value_type(std::move(_key),
+//                                            mapped_type()));
+//     return (*(ret_pair.first)).second;
+// }
+
+template <typename Key, typename T, typename Compare, typename Allocator>
+pair<typename map<Key, T, Compare, Allocator>::iterator, bool>
+map<Key, T, Compare, Allocator>::insert(const value_type &_pair)
+{
+    pair<tree_iterator, bool> ret = p_tree_impl->insert(_pair);
+    return pair<iterator, bool>(iterator(ret.first, this), ret.second);
+}
 
 
 
