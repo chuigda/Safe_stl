@@ -84,10 +84,17 @@ private:
     node_allocator_type node_alloc;
     tree_node_base *root;
 
+    pair<tree_iterator, bool> insert_impl(const ItemType &_item,
+                                          bool _is_rvalue);
+
+    template <typename... Args> tree_node *create_tree_node(Args&& ..._args);
+    tree_node *create_tree_node(const ItemType& _item, bool _is_rvalue);
+
     void remove_tree_node(tree_node *_node);
     void unplug_tree_node(tree_node *_node);
     tree_node* find_leftmost_node(tree_node *_root);
     void destroy_tree(tree_node *_root);
+
 }; // class saber::free_tree
 
 
@@ -97,7 +104,6 @@ class free_tree<IT, IC, AL>::tree_iterator
 {
     friend class free_tree;
 public:
-    using iterator_category = std::bidirectional_iterator_tag;
     using value_type      = typename free_tree::value_type;
     using pointer         = typename free_tree::pointer;
     using reference       = typename free_tree::reference;
@@ -148,134 +154,14 @@ template <typename IT, typename IC, typename AL>
 pair<typename free_tree<IT, IC, AL>::tree_iterator, bool>
 free_tree<IT, IC, AL>::insert(const IT &_item)
 {
-    if (root->left_child == nullptr)
-    {
-        tree_node *new_node =
-            allocator_traits<node_allocator_type>::allocate(node_alloc, 1);
-        construct(new_node, _item);
-
-        root->left_child = new_node;
-        new_node->parent = reinterpret_cast<tree_node*>(root);
-        return pair<tree_iterator, bool>(begin(), true);
-    }
-    else
-    {
-        for (tree_node *node_it = root->left_child;;)
-        {
-            if (less_comp(_item, node_it->item))
-            {
-                if (node_it->left_child == nullptr)
-                {
-                    tree_node *new_node =
-                        allocator_traits<node_allocator_type>::allocate(
-                                node_alloc, 1);
-                    construct(new_node, _item);
-
-                    node_it->left_child = new_node;
-                    new_node->parent = node_it;
-
-                    return pair<tree_iterator, bool>(
-                        tree_iterator(node_it->left_child), true);
-                }
-                else
-                {
-                    node_it = node_it->left_child;
-                }
-            }
-            else if (less_comp(node_it->item, _item))
-            {
-                if (node_it->right_child == nullptr)
-                {
-                    tree_node *new_node =
-                        allocator_traits<node_allocator_type>::allocate(
-                                node_alloc, 1);
-                    construct(new_node, _item);
-
-                    node_it->right_child = new_node;
-                    new_node->parent = node_it;
-
-                    return pair<tree_iterator, bool>(
-                        tree_iterator(node_it->right_child), true);
-                }
-                else
-                {
-                    node_it = node_it->right_child;
-                }
-            }
-            else
-            {
-                return pair<tree_iterator, bool>(
-                    tree_iterator(node_it), false);
-            }
-        }
-    }
+    return insert_impl(_item, false);
 }
 
 template <typename IT, typename IC, typename AL>
 pair<typename free_tree<IT, IC, AL>::tree_iterator, bool>
 free_tree<IT, IC, AL>::insert(IT &&_item)
 {
-    if (root->left_child == nullptr)
-    {
-        tree_node *new_node =
-            allocator_traits<node_allocator_type>::allocate(node_alloc, 1);
-        construct(new_node, std::move(_item));
-
-        root->left_child = new_node;
-        new_node->parent = reinterpret_cast<tree_node*>(root);
-        return pair<tree_iterator, bool>(begin(), true);
-    }
-    else
-    {
-        for (tree_node *node_it = root->left_child;;)
-        {
-            if (less_comp(_item, node_it->item))
-            {
-                if (node_it->left_child == nullptr)
-                {
-                    tree_node *new_node =
-                        allocator_traits<node_allocator_type>::allocate(
-                                node_alloc, 1);
-                    construct(new_node, std::move(_item));
-
-                    node_it->left_child = new_node;
-                    new_node->parent = node_it;
-
-                    return pair<tree_iterator, bool>(
-                        tree_iterator(node_it->left_child), true);
-                }
-                else
-                {
-                    node_it = node_it->left_child;
-                }
-            }
-            else if (less_comp(node_it->item, _item))
-            {
-                if (node_it->right_child == nullptr)
-                {
-                    tree_node *new_node =
-                        allocator_traits<node_allocator_type>::allocate(
-                                node_alloc, 1);
-                    construct(new_node, std::move(_item));
-
-                    node_it->right_child = new_node;
-                    new_node->parent = node_it;
-
-                    return pair<tree_iterator, bool>(
-                        tree_iterator(node_it->right_child), true);
-                }
-                else
-                {
-                    node_it = node_it->right_child;
-                }
-            }
-            else
-            {
-                return pair<tree_iterator, bool>(
-                    tree_iterator(node_it), false);
-            }
-        }
-    }
+    return insert_impl(_item, true);
 }
 
 
@@ -407,13 +293,93 @@ free_tree<IT, IC, AL>::clear() noexcept
 }
 
 template <typename IT, typename IC, typename AL>
+pair<typename free_tree<IT, IC, AL>::tree_iterator, bool>
+free_tree<IT, IC, AL>::insert_impl(const IT &_item, bool _is_rvalue)
+{
+    if (root->left_child == nullptr)
+    {
+        tree_node *new_node = create_tree_node(_item, _is_rvalue);
+        root->left_child = new_node;
+        new_node->parent = reinterpret_cast<tree_node*>(root);
+        return pair<tree_iterator, bool>(begin(), true);
+    }
+    else
+    {
+        for (tree_node *node_it = root->left_child;;)
+        {
+            if (less_comp(_item, node_it->item))
+            {
+                if (node_it->left_child == nullptr)
+                {
+                    tree_node *new_node = create_tree_node(_item, _is_rvalue);
+
+                    node_it->left_child = new_node;
+                    new_node->parent = node_it;
+
+                    return pair<tree_iterator, bool>(
+                        tree_iterator(node_it->left_child), true);
+                }
+                else
+                {
+                    node_it = node_it->left_child;
+                }
+            }
+            else if (less_comp(node_it->item, _item))
+            {
+                if (node_it->right_child == nullptr)
+                {
+                    tree_node *new_node = create_tree_node(_item, _is_rvalue);
+                    construct(new_node, _item);
+
+                    node_it->right_child = new_node;
+                    new_node->parent = node_it;
+
+                    return pair<tree_iterator, bool>(
+                        tree_iterator(node_it->right_child), true);
+                }
+                else
+                {
+                    node_it = node_it->right_child;
+                }
+            }
+            else
+            {
+                return pair<tree_iterator, bool>(
+                    tree_iterator(node_it), false);
+            }
+        }
+    }
+}
+
+template <typename IT, typename IC, typename AL>
+template <typename... Args>
+typename free_tree<IT, IC, AL>::tree_node*
+free_tree<IT, IC, AL>::create_tree_node(Args&& ..._args)
+{
+    tree_node *ret = allocator_traits<node_allocator_type>::allocate(
+                         node_alloc, 1);
+    construct(ret, std::forward<Args>(_args)...);
+    return ret;
+}
+
+template <typename IT, typename IC, typename AL>
+typename free_tree<IT, IC, AL>::tree_node*
+free_tree<IT, IC, AL>::create_tree_node(const IT &_item, bool _is_rvalue)
+{
+    tree_node *ret = allocator_traits<node_allocator_type>::allocate(
+                         node_alloc, 1);
+    if (_is_rvalue) construct(ret, std::move(_item));
+    else construct(ret, _item);
+    return ret;
+}
+
+template <typename IT, typename IC, typename AL>
 void
 free_tree<IT, IC, AL>::remove_tree_node(tree_node *_node)
 {
     unplug_tree_node(_node);
-    destroy_at(reinterpret_cast<tree_node*>(_node));
-    allocator_traits<node_allocator_type>::deallocate(
-        node_alloc, reinterpret_cast<tree_node*>(_node), 1);
+    destroy_at(_node);
+    allocator_traits<node_allocator_type>::deallocate(node_alloc, _node, 1);
 }
 
 template <typename IT, typename IC, typename AL>
