@@ -170,9 +170,7 @@ template <typename... Args>
 pair<typename free_tree<IT, IC, AL>::tree_iterator, bool>
 free_tree<IT, IC, AL>::emplace(Args&& ..._args)
 {
-    tree_node *new_node =
-        allocator_traits<node_allocator_type>::allocate(node_alloc, 1);
-    construct(new_node, std::forward<Args>(_args)...);
+    tree_node *new_node = create_tree_node(std::forward<Args>(_args)...);
 
     if (root->left_child == nullptr)
     {
