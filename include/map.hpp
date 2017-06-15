@@ -93,7 +93,7 @@ public:
     size_type max_size() const noexcept;
 
     T& operator[] (const key_type& _key);
-    // T& operator[] (key_type&& _key);
+    T& operator[] (key_type&& _key);
 
     T& at(const key_type& _key);
     const T& at(const key_type &_key) const;
@@ -105,10 +105,10 @@ public:
 
     pair<iterator, bool> insert(const value_type& _pair);
     iterator insert(const_iterator _pos, const value_type& _pair);
-    // template <typename Pair>
-    // pair<iterator, bool> insert(Pair&& _pair);
-    // template <typename Pair> iterator
-    // insert(const_iterator _pos, Pair&& _pair);
+//    template <typename Pair>
+//    pair<iterator, bool> insert(Pair&& _pair);
+//    template <typename Pair> iterator
+//    insert(const_iterator _pos, Pair&& _pair);
 
     template <typename InputIterator>
     void insert(InputIterator _first, InputIterator _last);
@@ -348,26 +348,49 @@ template <typename Key, typename T, typename Compare, typename Allocator>
 T&
 map<Key, T, Compare, Allocator>::operator [](const key_type& _key)
 {
-    value_type the_pair = value_type(_key, mapped_type());
-    pair<iterator, bool> ret_pair = insert(the_pair);
+    pair<iterator, bool> ret_pair = emplace(value_type(_key, mapped_type()));
     return (*(ret_pair.first)).second;
 }
 
-// template <typename Key, typename T, typename Compare, typename Allocator>
-// T&
-// map<Key, T, Compare, Allocator>::operator [](key_type&& _key)
-// {
-//     pair<iterator, bool> ret_pair = insert(value_type(std::move(_key),
-//                                            mapped_type()));
-//     return (*(ret_pair.first)).second;
-// }
+template <typename Key, typename T, typename Compare, typename Allocator>
+T&
+map<Key, T, Compare, Allocator>::operator [](key_type&& _key)
+{
+    pair<iterator, bool> ret_pair = emplace(value_type(std::move(_key),
+                                            mapped_type()));
+    return (*(ret_pair.first)).second;
+}
+
+template <typename Key, typename T, typename Compare, typename Allocator>
+template <typename... Args>
+pair<typename map<Key, T, Compare, Allocator>::iterator, bool>
+map<Key, T, Compare, Allocator>::emplace(Args&& ..._args)
+{
+    pair<tree_iterator, bool> ret = p_tree_impl->emplace(
+                                        std::forward<Args>(_args)...);
+    return pair<iterator, bool>(iterator(ret.first, this), ret.second);
+}
+
+template <typename Key, typename T, typename Compare, typename Allocator>
+template <typename... Args>
+typename map<Key, T, Compare, Allocator>::iterator
+map<Key, T, Compare, Allocator>::emplace_hint(const_iterator, Args&& ..._args)
+{
+    return emplace(std::forward<Args>(_args)...).first;
+}
 
 template <typename Key, typename T, typename Compare, typename Allocator>
 pair<typename map<Key, T, Compare, Allocator>::iterator, bool>
 map<Key, T, Compare, Allocator>::insert(const value_type &_pair)
 {
-    pair<tree_iterator, bool> ret = p_tree_impl->insert(_pair);
-    return pair<iterator, bool>(iterator(ret.first, this), ret.second);
+    return emplace(_pair);
+}
+
+template <typename Key, typename T, typename Compare, typename Allocator>
+typename map<Key, T, Compare, Allocator>::iterator
+map<Key, T, Compare, Allocator>::insert(const_iterator, const value_type &_pair)
+{
+    return insert(_pair).first;
 }
 
 

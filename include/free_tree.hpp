@@ -195,7 +195,7 @@ free_tree<IT, IC, AL>::insert(const IT &_item)
                     new_node->parent = node_it;
 
                     return pair<tree_iterator, bool>(
-                        tree_iterator(node_it->left_child), true);
+                        tree_iterator(node_it->right_child), true);
                 }
                 else
                 {
@@ -262,7 +262,7 @@ free_tree<IT, IC, AL>::insert(IT &&_item)
                     new_node->parent = node_it;
 
                     return pair<tree_iterator, bool>(
-                        tree_iterator(node_it->left_child), true);
+                        tree_iterator(node_it->right_child), true);
                 }
                 else
                 {
