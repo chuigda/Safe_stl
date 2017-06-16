@@ -35,8 +35,6 @@
 namespace saber
 {
 
-using std::allocator_traits;
-
 template <typename T, typename... Args>
 void
 construct(T* _xptr, Args&&... _args)
@@ -370,6 +368,36 @@ default_allocator<T>::operator=(const default_allocator &) noexcept
 {
     return *this;
 }
+
+
+
+template <typename Allocator>
+struct allocator_traits
+{
+    using allocator_type = Allocator;
+    using value_type     = typename Allocator::value_type;
+    using pointer        = typename Allocator::pointer;
+    using const_pointer  = typename Allocator::const_pointer;
+    // using void_pointer       = void*;
+    // using const_void_pointer = const void*
+    using size_type       = typename Allocator::size_type;
+    using difference_type = typename Allocator::difference_type;
+
+    template <typename T>
+    using rebind_alloc = typename Allocator::template rebind<T>::other;
+    template <typename T>
+    using rebind_traits = allocator_traits<rebind_alloc<T>>;
+
+    static pointer allocate(Allocator& _a, size_type _n)
+    {
+        return _a.allocate(_n);
+    }
+
+    static void deallocate(Allocator& _a, pointer _p, size_type _n)
+    {
+        _a.deallocate(_p, _n);
+    }
+};
 
 } // namespace saber
 
