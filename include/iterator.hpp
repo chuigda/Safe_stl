@@ -50,6 +50,8 @@
 namespace saber
 {
 
+using std::iterator_traits;
+
 namespace traits
 {
 

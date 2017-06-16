@@ -417,7 +417,7 @@ list<T, Allocator>::emplace(const_iterator _position, Args&&... _args)
 
     list_node *node =
             allocator_traits<node_allocator_type>::allocate(node_alloc, 1);
-    construct(node, std::forward<Args>(_args)...);
+    construct(node, saber::forward<Args>(_args)...);
 
     node->prev = position.node->prev;
     node->next = position.node;
@@ -433,9 +433,9 @@ list<T, Allocator>::emplace(const_iterator _position, Args&&... _args)
 template <typename T, typename Allocator>
 template <typename... Args>
 typename list<T, Allocator>::iterator
-list<T, Allocator>::emplace_back(Args&&... _args):
+list<T, Allocator>::emplace_back(Args&&... _args)
 {
-    emplace(cend(), std::forward<Args>(_args)...);
+    emplace(cend(), saber::forward<Args>(_args)...);
 }
 
 template <typename T, typename Allocator>
@@ -443,7 +443,7 @@ template <typename... Args>
 typename list<T, Allocator>::iterator
 list<T, Allocator>::emplace_front(Args&&... _args)
 {
-    emplace(cbegin(), std::forward<Args>(_args)...);
+    emplace(cbegin(), saber::forward<Args>(_args)...);
 }
 
 template <typename T, typename Allocator>

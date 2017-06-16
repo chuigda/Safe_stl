@@ -70,7 +70,7 @@ private:
     {
         template <typename... Args>
         tree_node(Args&&... _args) :
-            tree_node_base(), item(std::forward<Args>(_args)...)
+            tree_node_base(), item(saber::forward<Args>(_args)...)
         {}
         ~tree_node() {}
         ItemType item;
@@ -170,7 +170,7 @@ template <typename... Args>
 pair<typename free_tree<IT, IC, AL>::tree_iterator, bool>
 free_tree<IT, IC, AL>::emplace(Args&& ..._args)
 {
-    tree_node *new_node = create_tree_node(std::forward<Args>(_args)...);
+    tree_node *new_node = create_tree_node(saber::forward<Args>(_args)...);
 
     if (root->left_child == nullptr)
     {
@@ -356,7 +356,7 @@ free_tree<IT, IC, AL>::create_tree_node(Args&& ..._args)
 {
     tree_node *ret = allocator_traits<node_allocator_type>::allocate(
                          node_alloc, 1);
-    construct(ret, std::forward<Args>(_args)...);
+    construct(ret, saber::forward<Args>(_args)...);
     return ret;
 }
 

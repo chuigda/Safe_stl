@@ -29,15 +29,19 @@
 #include "safe_stl_general.hpp"
 #include "saber_traits.hpp"
 #include "iterator.hpp"
+#include "utility.hpp"
+#include <memory>
 
 namespace saber
 {
+
+using std::allocator_traits;
 
 template <typename T, typename... Args>
 void
 construct(T* _xptr, Args&&... _args)
 {
-    ::new (reinterpret_cast<void*>(_xptr)) T(std::forward<Args>(_args)...);
+    ::new (reinterpret_cast<void*>(_xptr)) T(saber::forward<Args>(_args)...);
 }
 
 template <typename T>
@@ -335,7 +339,7 @@ template <typename U, typename... Args>
 void
 default_allocator<T>::construct(U *_xptr, Args&& ...args)
 {
-    ::new ((void *)_xptr) U(std::forward<Args>(args)...);
+    ::new ((void *)_xptr) U(saber::forward<Args>(args)...);
 }
 
 template <typename T>

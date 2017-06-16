@@ -36,11 +36,7 @@
 
 #include <cstdio>
 #include <cstdlib>
-#include <new>
-#include <ctime>
-#include <utility>
 #include <initializer_list>
-#include <memory>
 #include <limits>
 #include <cassert>
 
@@ -49,11 +45,7 @@
 namespace saber
 {
 
-using std::allocator_traits;
-using std::iterator_traits;
 using std::initializer_list;
-using std::swap;
-using std::pair;
 
 FILE*& fp_export(void);
 void set_export(FILE* _fp);

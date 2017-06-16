@@ -5,6 +5,7 @@
 // functional library. However, this may be changed soon.
 
 #include "safe_stl_general.hpp"
+#include "utility.hpp"
 
 namespace saber
 {
@@ -39,9 +40,9 @@ struct less<void>
 {
     template <typename A, typename B>
     constexpr auto operator() (A&& _lhs, B&& _rhs) const
-        -> decltype(std::forward<A>(_lhs) < std::forward<B>(_rhs))
+        -> decltype(saber::forward<A>(_lhs) < saber::forward<B>(_rhs))
     {
-        return std::forward<A>(_lhs) < std::forward<B>(_rhs);
+        return saber::forward<A>(_lhs) < saber::forward<B>(_rhs);
     }
 };
 
@@ -62,10 +63,10 @@ struct c8_equivalent<void, void>
     constexpr auto operator() (A&& _a, B&& _b,
                                const LessPredicator& _less_pred) const
         ->
-        decltype( (! _less_pred(std::forward<A>(_a), std::forward<B>(_b)) ) &&
-                  (! _less_pred(std::forward<B>(_b), std::forward<A>(_a)) ) )
-    { return (!_less_pred(std::forward<A>(_a), std::forward<B>(_b)))
-          && (!_less_pred(std::forward<B>(_b), std::forward<A>(_a))); }
+        decltype( (! _less_pred(saber::forward<A>(_a), saber::forward<B>(_b)) ) &&
+                  (! _less_pred(saber::forward<B>(_b), saber::forward<A>(_a)) ) )
+    { return (!_less_pred(saber::forward<A>(_a), saber::forward<B>(_b)))
+          && (!_less_pred(saber::forward<B>(_b), saber::forward<A>(_a))); }
 };
 
 } // namespace saber

@@ -367,7 +367,7 @@ pair<typename map<Key, T, Compare, Allocator>::iterator, bool>
 map<Key, T, Compare, Allocator>::emplace(Args&& ..._args)
 {
     pair<tree_iterator, bool> ret = p_tree_impl->emplace(
-                                        std::forward<Args>(_args)...);
+                                        saber::forward<Args>(_args)...);
     return pair<iterator, bool>(iterator(ret.first, this), ret.second);
 }
 
@@ -376,7 +376,7 @@ template <typename... Args>
 typename map<Key, T, Compare, Allocator>::iterator
 map<Key, T, Compare, Allocator>::emplace_hint(const_iterator, Args&& ..._args)
 {
-    return emplace(std::forward<Args>(_args)...).first;
+    return emplace(saber::forward<Args>(_args)...).first;
 }
 
 template <typename Key, typename T, typename Compare, typename Allocator>

@@ -667,7 +667,7 @@ vector<T, Allocator>::emplace(const_iterator _position, Args... _args)
 
         reverse_copy(iter_temp, end(), rbegin());
         destroy_at(iter_temp.ptr);
-        construct(iter_temp.ptr, std::forward<Args>(_args)...);
+        construct(iter_temp.ptr, saber::forward<Args>(_args)...);
 
         update_vector();
         return iterator(this, iter_temp.ptr);
@@ -680,7 +680,7 @@ vector<T, Allocator>::emplace(const_iterator _position, Args... _args)
         difference_type position_diff = _position - cbegin();
 
         uninitialized_copy(cbegin(), cbegin() + position_diff, new_array);
-        construct(new_array + position_diff, std::forward<Args>(_args)...);
+        construct(new_array + position_diff, saber::forward<Args>(_args)...);
         uninitialized_copy(cbegin() + position_diff,
                            cend(),
                            new_array + position_diff + 1);

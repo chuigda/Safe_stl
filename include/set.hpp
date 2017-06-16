@@ -6,6 +6,7 @@
 #include "memory.hpp"
 #include "free_tree.hpp"
 #include "iterator.hpp"
+#include "utility.hpp"
 
 namespace saber
 {
@@ -316,7 +317,7 @@ template <typename... Args>
 pair<typename set<Key, Compare, Allocator>::iterator, bool>
 set<Key, Compare, Allocator>::emplace(Args&& ...args)
 {
-    auto result = p_tree_impl->emplace(std::forward<Args>(args)...);
+    auto result = p_tree_impl->emplace(saber::forward<Args>(args)...);
     return pair<iterator, bool>(iterator(result.first, this), result.second);
 }
 
@@ -325,7 +326,7 @@ template <typename... Args>
 typename set<Key, Compare, Allocator>::iterator
 set<Key, Compare, Allocator>::emplace_hint(const_iterator, Args&& ...args)
 {
-    return emplace(std::forward<Args>(args)...).first;
+    return emplace(saber::forward<Args>(args)...).first;
 }
 
 template <typename Key, typename Compare, typename Allocator>

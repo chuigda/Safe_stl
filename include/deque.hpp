@@ -668,7 +668,7 @@ deque<T, Allocator>::emplace_back(Args... _args)
 {
     if (*cmap_it_end == *cmap_it_cap_end) add_subarray_at_end();
     construct(std::addressof(cmap_it_end->operator*()),
-              std::forward<Args>(_args)...);
+              saber::forward<Args>(_args)...);
     cmap_it_end->operator++();
 
     update_vector();
@@ -683,7 +683,7 @@ deque<T, Allocator>::emplace_front(Args... _args)
     cmap_iterator by_the_way = *cmap_it_begin;
     --by_the_way;
     construct(std::addressof(*by_the_way),
-              std::forward<Args>(_args)...);
+              saber::forward<Args>(_args)...);
     cmap_it_begin->operator--();
 
     update_vector();
@@ -711,7 +711,7 @@ deque<T, Allocator>::emplace(const_iterator _pos, Args... _args)
     }
 
     destroy_at(std::addressof(*iterator(_pos)));
-    construct(std::addressof(*iterator(_pos)), std::forward<Args>(_args)...);
+    construct(std::addressof(*iterator(_pos)), saber::forward<Args>(_args)...);
 }
 
 template <typename T, typename Allocator>

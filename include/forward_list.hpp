@@ -363,7 +363,7 @@ forward_list<T, Allocator>::emplace_after(const_iterator _pos, Args&&... _args)
 
     list_node *node =
             allocator_traits<node_allocator_type>::allocate(node_alloc, 1);
-    construct(node, std::forward<Args>(_args)...);
+    construct(node, saber::forward<Args>(_args)...);
 
     iterator mutable_iterator(_pos);
     node->next = mutable_iterator.node->next;
