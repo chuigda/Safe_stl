@@ -7,6 +7,7 @@
 
 #include <cstdio>
 #include <iostream>
+#include <cassert>
 
 namespace saber
 {
@@ -38,6 +39,18 @@ avalon(InputIterator _begin, InputIterator _end)
         std::cout << *_begin << ' ';
     }
     std::cout << std::endl;
+}
+
+template <typename InputIterator1, typename InputIterator2>
+void
+lawaxis(InputIterator1 _first, InputIterator1 _last,
+        InputIterator2 _d_first, InputIterator2 _d_last)
+{
+    while (_first != _last && _d_first != _d_last)
+    {
+        assert(*_first == *_d_first);
+        ++_first; ++_d_first;
+    }
 }
 
 } // namespace saber

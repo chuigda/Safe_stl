@@ -42,8 +42,10 @@ public:
     set(InputIterator _first, InputIterator _last,
         const Compare& _comp = Compare(), 
         const Allocator& _alloc = Allocator());
-    set(const set& _another, const Allocator& _alloc = Allocator());
-    set(set&& _another, const Allocator& _alloc = Allocator());
+    set(const set& _another);
+    set(const set& _another, const Allocator& _alloc);
+    set(set&& _another);
+    set(set&& _another, const Allocator& _alloc);
     set(std::initializer_list<value_type> _ilist,
         const Compare& _comp = Compare(),
         const Allocator& _alloc = Allocator());
@@ -53,6 +55,8 @@ public:
     set& operator= (const set& _another);
     set& operator= (set&& _another);
     set& operator= (std::initializer_list<value_type> _ilist);
+
+    allocator_type get_allocator() const;
 
     iterator begin() noexcept;
     const_iterator begin() const noexcept;
@@ -202,9 +206,64 @@ set<Key, Compare, Allocator>::set(const Compare& _comp, const Allocator& _alloc)
 }
 
 template <typename Key, typename Compare, typename Allocator>
+template <typename InputIterator>
+set<Key, Compare, Allocator>::set(InputIterator _first,
+                                  InputIterator _last,
+                                  const Compare& _comp,
+                                  const Allocator& _alloc) :
+    set(_comp, _alloc)
+{
+    for (; _first != _last; ++_first)
+    {
+        insert(*_first);
+    }
+}
+
+template <typename Key, typename Compare, typename Allocator>
+set<Key, Compare, Allocator>::set(std::initializer_list<value_type> _ilist,
+                                  const Compare &_comp,
+                                  const Allocator &_alloc) :
+    set(_ilist.begin(), _ilist.end(), _comp, _alloc)
+{}
+
+template <typename Key, typename Compare, typename Allocator>
+set<Key, Compare, Allocator>::set(const set &_another) :
+    set(_another.cbegin(), _another.cend(),
+        _another.key_comp(), _another.get_allocator())
+{}
+
+template <typename Key, typename Compare, typename Allocator>
+set<Key, Compare, Allocator>::set(set &&_another)
+{
+    p_tree_impl = _another.p_tree_impl;
+    _another.p_tree_impl = nullptr;
+}
+
+template <typename Key, typename Compare, typename Allocator>
+set<Key, Compare, Allocator>::set(const set &_another,
+                                  const Allocator &_alloc) :
+    set(_another.begin(), _another.end(), _another.key_comp(), _alloc)
+{}
+
+template <typename Key, typename Compare, typename Allocator>
+set<Key, Compare, Allocator>::set(set &&_another, const Allocator &_alloc) :
+    set(_another.begin(), _another.end(), _another.key_comp(), _alloc)
+{}
+
+
+template <typename Key, typename Compare, typename Allocator>
 set<Key, Compare, Allocator>::~set()
 {
     delete p_tree_impl;
+}
+
+
+
+template <typename Key, typename Compare, typename Allocator>
+typename set<Key, Compare, Allocator>::allocator_type
+set<Key, Compare, Allocator>::get_allocator() const
+{
+    return p_tree_impl->get_allocator();
 }
 
 template <typename Key, typename Compare, typename Allocator>
@@ -385,6 +444,18 @@ set<Key, Compare, Allocator>::erase(const_iterator _pos)
 }
 
 template <typename Key, typename Compare, typename Allocator>
+typename set<Key, Compare, Allocator>::iterator
+set<Key, Compare, Allocator>::erase(const_iterator _first, const_iterator _last)
+{
+    while (_first != _last)
+    {
+        const_iterator it = _first++;
+        erase(it);
+    }
+    return iterator(_last);
+}
+
+template <typename Key, typename Compare, typename Allocator>
 typename set<Key, Compare, Allocator>::size_type
 set<Key, Compare, Allocator>::erase(const value_type &_value)
 {
@@ -411,10 +482,24 @@ set<Key, Compare, Allocator>::clear() noexcept
 }
 
 template <typename Key, typename Compare, typename Allocator>
+typename set<Key, Compare, Allocator>::key_compare
+set<Key, Compare, Allocator>::key_comp() const
+{
+    return p_tree_impl->value_comp();
+}
+
+template <typename Key, typename Compare, typename Allocator>
+typename set<Key, Compare, Allocator>::value_compare
+set<Key, Compare, Allocator>::value_comp() const
+{
+    return p_tree_impl->value_comp();
+}
+
+template <typename Key, typename Compare, typename Allocator>
 typename set<Key, Compare, Allocator>::iterator
 set<Key, Compare, Allocator>::find(const key_type &_key)
 {
-    return iterator(p_tree_impl->find(_key));
+    return iterator(p_tree_impl->find(_key), this);
 }
 
 template <typename Key, typename Compare, typename Allocator>

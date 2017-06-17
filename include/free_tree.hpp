@@ -34,6 +34,9 @@ public:
     explicit free_tree(const ItemCompare& _comp, const Allocator& _alloc);
     ~free_tree();
 
+    allocator_type get_allocator() const;
+    value_compare value_comp() const;
+
     pair<tree_iterator, bool> insert(const ItemType& _item);
     pair<tree_iterator, bool> insert(ItemType&& _item);
     template <typename... Args>
@@ -151,6 +154,20 @@ free_tree<IT, IC, AL>::~free_tree()
 }
 
 template <typename IT, typename IC, typename AL>
+typename free_tree<IT, IC, AL>::allocator_type
+free_tree<IT, IC, AL>::get_allocator() const
+{
+    return alloc;
+}
+
+template <typename IT, typename IC, typename AL>
+typename free_tree<IT, IC, AL>::value_compare
+free_tree<IT, IC, AL>::value_comp() const
+{
+    return less_comp;
+}
+
+template <typename IT, typename IC, typename AL>
 pair<typename free_tree<IT, IC, AL>::tree_iterator, bool>
 free_tree<IT, IC, AL>::insert(const IT &_item)
 {
@@ -163,7 +180,6 @@ free_tree<IT, IC, AL>::insert(IT &&_item)
 {
     return insert_impl(_item, true);
 }
-
 
 template <typename IT, typename IC, typename AL>
 template <typename... Args>
