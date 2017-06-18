@@ -155,6 +155,7 @@ public:
     using const_reference   = typename vector::const_reference;
 
     iterator(const iterator&) = default;
+    iterator(const typename vector::const_iterator& _const_iter);
     ~iterator() = default;
 
     reference operator* ();
@@ -210,6 +211,7 @@ public:
     using const_reference   = typename vector::const_reference;
 
     const_iterator(const const_iterator&) = default;
+    const_iterator(const typename vector::iterator& _mutable_iter);
     ~const_iterator() = default;
 
     const_reference operator* ();
@@ -475,7 +477,7 @@ template <typename T, typename Allocator>
 inline bool
 vector<T, Allocator>::empty() const
 {
-    return size_val;
+    return (size_val == 0);
 }
 
 template <typename T, typename Allocator>
@@ -583,6 +585,17 @@ vector<T, Allocator>::insert(const_iterator _position,
                   C8_STAT__TEMPLATE_ARG__T__COPY_ASSIGN_ERROR);
     check_iterator(_position);
 
+    if (empty())
+    {
+        if (_position == cend())
+        {
+            for (size_type i = 0; i < _n; ++i) push_back(_value);
+            return end()-1;
+        }
+
+        stl_panic(C8_DYN__ITER__ITERATOR_OVERFLOW);
+    }
+
     if (size() + _n < capacity())
     {
         push_back(*(cend() - 1));
@@ -634,7 +647,7 @@ vector<T, Allocator>::insert(const_iterator _position,
 
     for (; _first != _last; ++_first, ++_position)
     {
-        _position = const_iterator(this, insert(_position, *(_first.ptr)).ptr);
+        _position = const_iterator(insert(_position, *_first));
     }
 
     return begin() + position_diff;
@@ -932,7 +945,6 @@ vector<T, Allocator>::check_iterator(const U& _it)
     }
 
     _it.version_check();
-    _it.boundary_check(0);
 }
 
 template <typename T, typename Allocator>
@@ -951,6 +963,14 @@ void vector<T, Allocator>::clear_capacity()
     capacity_val = 0;
     size_val = 0;
 }
+
+
+
+template <typename T, typename Allocator>
+vector<T, Allocator>::iterator::iterator(
+        const typename vector::const_iterator& _const_iter) :
+    iterator(_const_iter.get_from, _const_iter.ptr)
+{}
 
 template <typename T, typename Allocator>
 typename vector<T, Allocator>::iterator::reference
@@ -1109,6 +1129,14 @@ vector<T, Allocator>::iterator::operator!=
 {
     return ! operator==(_another);
 }
+
+
+
+template <typename T, typename Allocator>
+vector<T, Allocator>::const_iterator::const_iterator(
+        const typename vector::iterator& _mutable_iter) :
+    const_iterator(_mutable_iter.get_from, _mutable_iter.ptr)
+{}
 
 template <typename T, typename Allocator>
 typename vector<T, Allocator>::const_iterator::const_reference

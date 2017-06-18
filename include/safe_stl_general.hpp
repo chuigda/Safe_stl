@@ -50,10 +50,11 @@ using std::initializer_list;
 FILE*& fp_export(void);
 void set_export(FILE* _fp);
 
-#define stl_panic(_DESC) \
+#define stl_panic(_DESC)\
     {\
     std::fprintf(fp_export(), "At file %s, line %d\n", __FILE__, __LINE__);\
     std::fprintf(fp_export(), "STL panic called : %s\n", _DESC);\
+    std::fflush(fp_export());\
     std::abort();\
     }
 
@@ -62,6 +63,7 @@ void set_export(FILE* _fp);
     {\
     std::fprintf(fp_export(), "At file %s, line %d\n", __FILE__, __LINE__);\
     std::fprintf(fp_export(), "STL warning called : %s\n", _DESC);\
+    std::fflush(fp_export());\
     }
 #else
 #   define stl_warning(_DESC)

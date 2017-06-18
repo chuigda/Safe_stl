@@ -5,9 +5,8 @@
 #ifndef EXCALIBUR_HPP
 #define EXCALIBUR_HPP
 
-#include <cstdio>
 #include <iostream>
-#include <cassert>
+#include "safe_stl_general.hpp"
 
 namespace saber
 {
@@ -48,7 +47,10 @@ lawaxis(InputIterator1 _first, InputIterator1 _last,
 {
     while (_first != _last && _d_first != _d_last)
     {
-        assert(*_first == *_d_first);
+        if (*_first != *_d_first)
+        {
+            stl_panic("LawAxis error!");
+        }
         ++_first; ++_d_first;
     }
 }
