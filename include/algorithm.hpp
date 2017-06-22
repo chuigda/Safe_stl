@@ -193,6 +193,35 @@ distance(InputIterator _first, InputIterator _last)
 
 using std::swap;
 
+template <typename RandomAccessIterator>
+RandomAccessIterator
+_internal_partition(RandomAccessIterator _first, RandomAccessIterator _last)
+{
+    RandomAccessIterator guard = _first;
+
+    while (_first != _last)
+    {
+        while (!(*_last < *guard) && _first != _last) _last--;
+        while (!(*guard < *_first) && _first != _last) _first++;
+
+        if (_first != _last) swap(*_first, *_last);
+    }
+    swap(*_first, *guard);
+    return _first;
+}
+
+template <typename RandomAccessIterator>
+void
+sort(RandomAccessIterator _first, RandomAccessIterator _last)
+{
+    if (!(_first < _last)) return;
+
+    RandomAccessIterator mid = _internal_partition(_first, _last);
+    sort(_first, mid-1);
+    sort(mid+1, _last);
+}
+
+
 } // namespace saber
 
 #endif // ALGORITHM_HPP
