@@ -57,3 +57,10 @@ void testcase_vector_3()
 
     saber::lawaxis(v1.begin(), v1.end(), v2.begin(), v2.end());
 }
+
+void testcase_vector_4()
+{
+    saber::vector<int> v;
+    v.erase(v.begin(), v.end());
+}
+

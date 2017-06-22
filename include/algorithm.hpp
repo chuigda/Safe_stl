@@ -128,7 +128,7 @@ copy_n(InputIterator _first, Size _count, OutputIterator _d_first)
     return _d_first;
 }
 
-template<class BidirectionalIterator, class OutputIterator>
+template <typename BidirectionalIterator, typename  OutputIterator>
 OutputIterator
 reverse_copy(BidirectionalIterator _first,
              BidirectionalIterator _last,
