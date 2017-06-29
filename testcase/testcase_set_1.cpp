@@ -15,7 +15,7 @@ void testcase_set_1()
     s2.insert(19264);
     s2.insert(23767);
 
-    for (int i = 0; i < 1024; i++)
+    for (int i = 0; i < 65536; i++)
     {
         int r = rand();
         s1.insert(r);
@@ -25,5 +25,11 @@ void testcase_set_1()
     saber::lawaxis(s1.begin(), s1.end(), s2.begin(), s2.end());
     s1.erase(s1.find(19264), s1.find(23767));
     s2.erase(s2.find(19264), s2.find(23767));
+    saber::lawaxis(s1.begin(), s1.end(), s2.begin(), s2.end());
+    s1.erase(s1.begin());
+    s2.erase(s2.begin());
+    saber::lawaxis(s1.begin(), s1.end(), s2.begin(), s2.end());
+    s1.erase(--s1.end());
+    s2.erase(--s2.end());
     saber::lawaxis(s1.begin(), s1.end(), s2.begin(), s2.end());
 }

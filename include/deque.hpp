@@ -88,11 +88,11 @@ public:
     const_reference back() const;
 
     template <typename... Args>
-    void emplace_front(Args... _args);
+    void emplace_front(Args&&... _args);
     template <typename... Args>
-    void emplace_back(Args... _args);
+    void emplace_back(Args&&... _args);
     template <typename... Args>
-    void emplace(const_iterator _pos, Args... _args);
+    void emplace(const_iterator _pos, Args&&... _args);
 
     void push_back(const value_type& _value);
     void push_front(const value_type& _value);
@@ -128,7 +128,7 @@ private:
         subarray_type *ptr_array;
         size_type array_count;
     }
-    center_map;
+    *center_map;
 
     class cmap_iterator;
 
@@ -200,16 +200,21 @@ public:
 
 private:
     using cmap_iterator = typename deque::cmap_iterator;
+    const deque *get_from = nullptr;
     cmap_iterator cmap_it;
     uint32_t update_count = 0;
+    saber_ptr<bool> validating_ptr;
 
     void check_initialized() const;
     void check_up_to_date() const;
     void check_dereferencable() const;
 
-    iterator(const cmap_iterator& cmap_it) :
+    iterator(const deque *_get_from,
+             const cmap_iterator& cmap_it) :
+        get_from(_get_from),
         cmap_it(cmap_it),
-        update_count(cmap_it.get_from->update_count)
+        update_count(get_from->update_count),
+        validating_ptr(get_from->validating_ptr)
     {}
 };
 
@@ -260,17 +265,21 @@ public:
 
 private:
     using cmap_iterator = typename deque::cmap_iterator;
+    const deque *get_from = nullptr;
     cmap_iterator cmap_it;
-
     uint32_t update_count = 0;
+    saber_ptr<bool> validating_ptr;
 
     void check_initialized() const;
     void check_up_to_date() const;
     void check_dereferencable() const;
 
-    const_iterator(const cmap_iterator& cmap_it) :
+    const_iterator(const deque *_get_from,
+                   const cmap_iterator& cmap_it) :
+        get_from(_get_from),
         cmap_it(cmap_it),
-        update_count(cmap_it.get_from->update_count)
+        update_count(get_from->update_count),
+        validating_ptr(get_from->validating_ptr)
     {}
 };
 
@@ -312,24 +321,17 @@ private:
     using subarray_type = typename deque::subarray_type;
     using cmap          = typename deque::cmap;
 
-    cmap_iterator(const deque *_get_from,
+    cmap_iterator(const cmap* _p_cmap,
                   size_type _subarray_ptr,
                   size_type _subarray_index) :
-        get_from(_get_from),
-        p_cmap(&(_get_from->center_map)),
+        p_cmap(_p_cmap),
         subarray_ptr(_subarray_ptr),
-        index(_subarray_index),
-        validating_ptr(_get_from->validating_ptr)
+        index(_subarray_index)
     {}
 
-    void check_initialized() const;
-    void check_dereferencable() const;
-
-    const deque *get_from = nullptr;
     const cmap *p_cmap = nullptr;
     size_type subarray_ptr = 0;
     difference_type index = 0;
-    saber_ptr<bool> validating_ptr;
 };
 
 //////////////////////////////////////////////////////////////////////////////
@@ -342,16 +344,18 @@ deque<T, Allocator>::deque(const Allocator& _alloc) :
     ptr_alloc(alloc),
     validating_ptr(new bool(true))
 {
-    center_map.ptr_array =
-            allocator_traits<ptr_allocator_type>::allocate(ptr_alloc, 2);
-    center_map.ptr_array[0] = create_subarray();
-    center_map.ptr_array[1] = create_subarray();
-    center_map.array_count = 2;
+    center_map = new cmap;
 
-    cmap_it_cap_begin = new cmap_iterator(this, 0, 0);
-    cmap_it_cap_end = new cmap_iterator(this, 1, subarray_size-1);
-    cmap_it_begin = new cmap_iterator(this, 1, 0);
-    cmap_it_end = new cmap_iterator(this, 1, 0);
+    center_map->ptr_array =
+            allocator_traits<ptr_allocator_type>::allocate(ptr_alloc, 2);
+    center_map->ptr_array[0] = create_subarray();
+    center_map->ptr_array[1] = create_subarray();
+    center_map->array_count = 2;
+
+    cmap_it_cap_begin = new cmap_iterator(center_map, 0, 0);
+    cmap_it_cap_end = new cmap_iterator(center_map, 1, subarray_size-1);
+    cmap_it_begin = new cmap_iterator(center_map, 1, 0);
+    cmap_it_end = new cmap_iterator(center_map, 1, 0);
 }
 
 template <typename T, typename Allocator>
@@ -392,7 +396,7 @@ deque<T, Allocator>::deque(const deque &_another, const Allocator &_alloc) :
 
 template <typename T, typename Allocator>
 deque<T, Allocator>::deque(deque &&_another) :
-    deque(_another, _another.alloc)
+    deque(std::move(_another), _another.alloc)
 
 {
 }
@@ -427,25 +431,26 @@ template <typename T, typename Allocator>
 deque<T, Allocator>::~deque()
 {
     clear();
-
-    for (size_type i = 0; i < center_map.array_count; ++i)
+    for (size_type i = 0; i < center_map->array_count; ++i)
     {
         allocator_traits<allocator_type>::deallocate(
-                    alloc, center_map.ptr_array[i], subarray_size);
+                    alloc, center_map->ptr_array[i], subarray_size);
     }
     allocator_traits<ptr_allocator_type>::deallocate(
-                ptr_alloc, center_map.ptr_array, center_map.array_count);
+                ptr_alloc, center_map->ptr_array, center_map->array_count);
 
     delete cmap_it_begin;
     delete cmap_it_end;
     delete cmap_it_cap_begin;
     delete cmap_it_cap_end;
     (*validating_ptr.get()) = false;
+
+    delete center_map;
 }
 
 template <typename T, typename Allocator>
 deque<T, Allocator>&
-deque<T, Allocator>::operator = (const deque& _another)
+deque<T, Allocator>::operator= (const deque& _another)
 {
     deque temp(_another);
     swap(temp);
@@ -454,7 +459,7 @@ deque<T, Allocator>::operator = (const deque& _another)
 
 template <typename T, typename Allocator>
 deque<T, Allocator>&
-deque<T, Allocator>::operator = (deque&& _another)
+deque<T, Allocator>::operator= (deque&& _another)
 {
     deque temp(_another);
     swap(temp);
@@ -463,7 +468,7 @@ deque<T, Allocator>::operator = (deque&& _another)
 
 template <typename T, typename Allocator>
 deque<T, Allocator>&
-deque<T, Allocator>::operator = (initializer_list<T> _ilist)
+deque<T, Allocator>::operator= (initializer_list<T> _ilist)
 {
     deque temp(_ilist);
     swap(temp);
@@ -498,14 +503,14 @@ template <typename T, typename Allocator>
 typename deque<T, Allocator>::iterator
 deque<T, Allocator>::begin() noexcept
 {
-    return iterator(*cmap_it_begin);
+    return iterator(this, *cmap_it_begin);
 }
 
 template <typename T, typename Allocator>
 typename deque<T, Allocator>::iterator
 deque<T, Allocator>::end() noexcept
 {
-    return iterator(*cmap_it_end);
+    return iterator(this, *cmap_it_end);
 }
 
 template <typename T, typename Allocator>
@@ -526,14 +531,14 @@ template <typename T, typename Allocator>
 typename deque<T, Allocator>::const_iterator
 deque<T, Allocator>::cbegin() const noexcept
 {
-    return const_iterator(*cmap_it_begin);
+    return const_iterator(this, *cmap_it_begin);
 }
 
 template <typename T, typename Allocator>
 typename deque<T, Allocator>::const_iterator
 deque<T, Allocator>::cend() const noexcept
 {
-    return const_iterator(*cmap_it_end);
+    return const_iterator(this, *cmap_it_end);
 }
 
 template <typename T, typename Allocator>
@@ -664,7 +669,7 @@ deque<T, Allocator>::back() const
 template <typename T, typename Allocator>
 template <typename... Args>
 void
-deque<T, Allocator>::emplace_back(Args... _args)
+deque<T, Allocator>::emplace_back(Args&&... _args)
 {
     if (*cmap_it_end == *cmap_it_cap_end) add_subarray_at_end();
     construct(std::addressof(cmap_it_end->operator*()),
@@ -677,7 +682,7 @@ deque<T, Allocator>::emplace_back(Args... _args)
 template <typename T, typename Allocator>
 template <typename... Args>
 void
-deque<T, Allocator>::emplace_front(Args... _args)
+deque<T, Allocator>::emplace_front(Args&&... _args)
 {
     if (*cmap_it_begin == *cmap_it_cap_begin) add_subarray_at_begin();
     cmap_iterator by_the_way = *cmap_it_begin;
@@ -692,26 +697,38 @@ deque<T, Allocator>::emplace_front(Args... _args)
 template <typename T, typename Allocator>
 template <typename... Args>
 void
-deque<T, Allocator>::emplace(const_iterator _pos, Args... _args)
+deque<T, Allocator>::emplace(const_iterator _pos, Args&&... _args)
 {
     difference_type _pos_diff = _pos - cbegin();
 
-    if (_pos - cbegin() < cend() - _pos)
+    if (_pos == cend())
     {
-        emplace_front(front());
-        _pos = const_iterator(cbegin() + _pos_diff + 1);
-        copy(cbegin()+1, _pos, begin());
-        --_pos;
+        emplace_back(saber::forward<Args>(_args)...);
+    }
+    else if (_pos == cbegin())
+    {
+        emplace_front(saber::forward<Args>(_args)...);
     }
     else
     {
-        emplace_back(back());
-        _pos = const_iterator(cbegin() + _pos_diff);
-        reverse_copy(_pos, --cend(), rbegin());
-    }
+        if (_pos - cbegin() < cend() - _pos)
+        {
+            emplace_front(front());
+            _pos = const_iterator(cbegin() + _pos_diff + 1);
+            copy(cbegin()+1, _pos, begin());
+            --_pos;
+        }
+        else
+        {
+            emplace_back(back());
+            _pos = const_iterator(cbegin() + _pos_diff);
+            reverse_copy(_pos, --cend(), rbegin());
+        }
 
-    destroy_at(std::addressof(*iterator(_pos)));
-    construct(std::addressof(*iterator(_pos)), saber::forward<Args>(_args)...);
+        destroy_at(std::addressof(*iterator(_pos)));
+        construct(std::addressof(*iterator(_pos)),
+                  saber::forward<Args>(_args)...);
+    }
 }
 
 template <typename T, typename Allocator>
@@ -767,23 +784,10 @@ deque<T, Allocator>::insert(const_iterator _pos, const value_type &_value)
     static_assert(std::is_copy_constructible<T>::value,
                   C8_STAT__TEMPLATE_ARG__T__COPY_CONSTRUCT_ERROR);
 
-    if (_pos == cend())
-    {
-        emplace_back(_value);
-        return end()-1;
-    }
-    else if (_pos == cbegin())
-    {
-        emplace_front(_value);
-        return begin();
-    }
-    else
-    {
-        difference_type pos_diff = _pos - cbegin();
-        emplace(_pos, _value);
-        update_vector();
-        return iterator(begin() + pos_diff);
-    }
+    difference_type pos_diff = _pos - cbegin();
+    emplace(_pos, _value);
+    update_vector();
+    return iterator(begin() + pos_diff);
 }
 
 template <typename T, typename Allocator>
@@ -854,7 +858,7 @@ deque<T, Allocator>::erase(const_iterator _first, const_iterator _last)
         destroy(begin(), begin_of_storage);
         cmap_it_begin->operator= (begin_of_storage.cmap_it);
         update_vector();
-        return iterator(begin_of_storage.cmap_it);
+        return iterator(this, begin_of_storage.cmap_it);
     }
     else
     {
@@ -863,7 +867,7 @@ deque<T, Allocator>::erase(const_iterator _first, const_iterator _last)
         destroy(end_of_storage, end());
         cmap_it_end->operator= (end_of_storage.cmap_it);
         update_vector();
-        return iterator(end_of_storage.cmap_it);
+        return iterator(this, end_of_storage.cmap_it);
     }
 }
 
@@ -871,21 +875,24 @@ template <typename T, typename Allocator>
 void
 deque<T, Allocator>::clear()
 {
-    erase(begin(), end());
+    erase(cbegin(), cend());
 }
 
 template <typename T, typename Allocator>
 void
 deque<T, Allocator>::swap(deque &_another)
 {
-    swap(alloc, _another.alloc);
-    swap(ptr_alloc, _another.ptr_alloc);
+    saber::swap(alloc, _another.alloc);
+    saber::swap(ptr_alloc, _another.ptr_alloc);
     saber::swap(center_map, _another.center_map);
     saber::swap(cmap_it_begin, _another.cmap_it_begin);
     saber::swap(cmap_it_end, _another.cmap_it_end);
     saber::swap(cmap_it_cap_begin, _another.cmap_it_cap_begin);
     saber::swap(cmap_it_cap_end, _another.cmap_it_cap_end);
     saber::swap(validating_ptr, _another.validating_ptr);
+
+    update_vector();
+    _another.update_vector();
 }
 
 template <typename T, typename Allocator>
@@ -894,16 +901,16 @@ deque<T, Allocator>::add_subarray_at_begin()
 {
     subarray_type *new_ptr_array =
             allocator_traits<ptr_allocator_type>::allocate(
-                ptr_alloc, center_map.array_count+1);
+                ptr_alloc, center_map->array_count+1);
     new_ptr_array[0] = create_subarray();
-    uninitialized_copy_n(center_map.ptr_array, center_map.array_count,
+    uninitialized_copy_n(center_map->ptr_array, center_map->array_count,
                          new_ptr_array+1);
 
     allocator_traits<ptr_allocator_type>::deallocate(ptr_alloc,
-                                                     center_map.ptr_array,
-                                                     center_map.array_count);
-    center_map.ptr_array = new_ptr_array;
-    center_map.array_count++;
+                                                     center_map->ptr_array,
+                                                     center_map->array_count);
+    center_map->ptr_array = new_ptr_array;
+    center_map->array_count++;
 
     cmap_it_begin->subarray_ptr++;
     cmap_it_end->subarray_ptr++;
@@ -916,16 +923,16 @@ deque<T, Allocator>::add_subarray_at_end()
 {
     subarray_type *new_ptr_array =
             allocator_traits<ptr_allocator_type>::allocate(
-                ptr_alloc, center_map.array_count+1);
-    new_ptr_array[center_map.array_count] = create_subarray();
-    uninitialized_copy_n(center_map.ptr_array, center_map.array_count,
+                ptr_alloc, center_map->array_count+1);
+    new_ptr_array[center_map->array_count] = create_subarray();
+    uninitialized_copy_n(center_map->ptr_array, center_map->array_count,
                          new_ptr_array);
 
     allocator_traits<ptr_allocator_type>::deallocate(ptr_alloc,
-                                                     center_map.ptr_array,
-                                                     center_map.array_count);
-    center_map.ptr_array = new_ptr_array;
-    center_map.array_count++;
+                                                     center_map->ptr_array,
+                                                     center_map->array_count);
+    center_map->ptr_array = new_ptr_array;
+    center_map->array_count++;
 
     cmap_it_cap_end->subarray_ptr++;
 }
@@ -955,7 +962,8 @@ deque<T, Allocator>::update_vector()
 template <typename T, typename Allocator>
 deque<T, Allocator>::iterator::iterator(
         const typename deque::const_iterator& _const_iterator) :
-    iterator(_const_iterator.cmap_it)
+    iterator(_const_iterator.get_from,
+             _const_iterator.cmap_it)
 {
 }
 
@@ -1121,7 +1129,16 @@ template <typename T, typename Allocator>
 void
 deque<T, Allocator>::iterator::check_initialized() const
 {
-    cmap_it.check_initialized();
+    if (get_from == nullptr)
+    {
+        assert(update_count == 0);
+        stl_panic(C8_DYN__ITER__UNINITIALIZED_ITERATOR);
+    }
+
+    if (*(validating_ptr.get()) == false)
+    {
+        stl_panic(C8_DYN__ITER__DELETED_CONTAINER);
+    }
 }
 
 template <typename T, typename Allocator>
@@ -1129,7 +1146,7 @@ void
 deque<T, Allocator>::iterator::check_up_to_date() const
 {
     check_initialized();
-    if (update_count != cmap_it.get_from->update_count)
+    if (update_count != get_from->update_count)
     {
         stl_panic(C8_DYN__ITER__OLD_ITERATOR);
     }
@@ -1140,7 +1157,16 @@ void
 deque<T, Allocator>::iterator::check_dereferencable() const
 {
     check_up_to_date();
-    cmap_it.check_dereferencable();
+    if (update_count != get_from->update_count)
+    {
+        stl_panic(C8_DYN__ITER__OLD_ITERATOR);
+    }
+
+    if (! (*this < get_from->end()
+           && *this >= get_from->begin()))
+    {
+        stl_panic(C8_DYN__ITER__ITERATOR_OVERFLOW);
+    }
 }
 
 
@@ -1148,7 +1174,8 @@ deque<T, Allocator>::iterator::check_dereferencable() const
 template <typename T, typename Allocator>
 deque<T, Allocator>::const_iterator::const_iterator(
         const typename deque::iterator& _mutable_iterator) :
-    const_iterator(_mutable_iterator.cmap_it)
+    const_iterator(_mutable_iterator.get_from,
+                   _mutable_iterator.cmap_it)
 {
 }
 
@@ -1304,7 +1331,16 @@ template <typename T, typename Allocator>
 void
 deque<T, Allocator>::const_iterator::check_initialized() const
 {
-    cmap_it.check_initialized();
+    if (get_from == nullptr)
+    {
+        assert(update_count == 0);
+        stl_panic(C8_DYN__ITER__UNINITIALIZED_ITERATOR);
+    }
+
+    if (*(validating_ptr.get()) == false)
+    {
+        stl_panic(C8_DYN__ITER__DELETED_CONTAINER);
+    }
 }
 
 template <typename T, typename Allocator>
@@ -1312,7 +1348,7 @@ void
 deque<T, Allocator>::const_iterator::check_up_to_date() const
 {
     check_initialized();
-    if (update_count != cmap_it.get_from->update_count)
+    if (update_count != get_from->update_count)
     {
         stl_panic(C8_DYN__ITER__OLD_ITERATOR);
     }
@@ -1323,7 +1359,16 @@ void
 deque<T, Allocator>::const_iterator::check_dereferencable() const
 {
     check_up_to_date();
-    cmap_it.check_dereferencable();
+    if (update_count != get_from->update_count)
+    {
+        stl_panic(C8_DYN__ITER__OLD_ITERATOR);
+    }
+
+    if (! (*this < get_from->end()
+           && *this >= get_from->begin()))
+    {
+        stl_panic(C8_DYN__ITER__ITERATOR_OVERFLOW);
+    }
 }
 
 
@@ -1347,10 +1392,9 @@ bool
 deque<T, Allocator>::cmap_iterator::operator== (
         const cmap_iterator& _another) const
 {
-    return (get_from == _another.get_from)
-            && (p_cmap == _another.p_cmap)
-            && (subarray_ptr == _another.subarray_ptr)
-            && (index == _another.index);
+    return (p_cmap == _another.p_cmap)
+           && (subarray_ptr == _another.subarray_ptr)
+           && (index == _another.index);
 }
 
 template <typename T, typename Allocator>
@@ -1424,39 +1468,6 @@ deque<T, Allocator>::cmap_iterator::operator- (const cmap_iterator& _another)
     return subarray_size * (subarray_ptr - _another.subarray_ptr - 1)
            + (index)
            + (subarray_size - _another.index);
-}
-
-template <typename T, typename Allocator>
-void
-deque<T, Allocator>::cmap_iterator::check_initialized() const
-{
-    if (get_from == nullptr)
-    {
-        assert(p_cmap == nullptr);
-        assert(subarray_ptr == 0);
-        assert(index == 0);
-
-        stl_panic(C8_DYN__ITER__UNINITIALIZED_ITERATOR);
-    }
-
-    assert(p_cmap != nullptr);
-
-    if (*(validating_ptr.get()) == false)
-    {
-        stl_panic(C8_DYN__ITER__DELETED_CONTAINER);
-    }
-}
-
-template <typename T, typename Allocator>
-void
-deque<T, Allocator>::cmap_iterator::check_dereferencable() const
-{
-    if (*this < *(get_from->cmap_it_begin)
-        || *(get_from->cmap_it_end) < *this
-        || *(get_from->cmap_it_end) == *this)
-    {
-        stl_panic(C8_DYN__ITER__ITERATOR_OVERFLOW);
-    }
 }
 
 

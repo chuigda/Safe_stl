@@ -7,6 +7,7 @@
 
 #include <iostream>
 #include "safe_stl_general.hpp"
+#include "utility.hpp"
 
 namespace saber
 {
@@ -38,6 +39,16 @@ avalon(InputIterator _begin, InputIterator _end)
         std::cout << *_begin << ' ';
     }
     std::cout << std::endl;
+}
+
+template <typename T>
+void
+lawaxis(T&& _t1, T&& _t2)
+{
+    if (saber::forward<T>(_t1) != std::forward<T>(_t2))
+    {
+        stl_panic("LawAxis error!");
+    }
 }
 
 template <typename InputIterator1, typename InputIterator2>

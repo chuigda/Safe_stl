@@ -31,6 +31,7 @@ public:
 
     Trace& operator= (const Trace&)
     {
+        delete[] m_dynamic;
         std::printf("Operator= at %p\n", this);
         m_dynamic = new int[4];
         size = 4;
@@ -44,8 +45,11 @@ public:
         delete[] m_dynamic;
     }
 
+    bool operator!= (const Trace&) const { return false; }
+    bool operator== (const Trace&) const { return true; }
+
 private:
-    int *m_dynamic;
+    int *m_dynamic = nullptr;
     size_t size;
 };
 

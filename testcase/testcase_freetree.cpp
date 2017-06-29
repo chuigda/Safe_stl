@@ -9,7 +9,6 @@ void testcase_freetree()
     saber::free_tree<int, saber::less<int>, saber::default_allocator<int>> ft(
                 (saber::less<int>()), (saber::default_allocator<int>()));
     std::set<int, saber::less<int>, saber::default_allocator<int>> sset;
-
     for (int i = 0; i < 32767; i++)
     {
         int r = rand();
@@ -17,7 +16,5 @@ void testcase_freetree()
         ft.insert(r);
         sset.insert(r);
     }
-
     saber::lawaxis(ft.begin(), ft.end(), sset.begin(), sset.end());
 }
-
