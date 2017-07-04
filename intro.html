@@ -1,0 +1,175 @@
+<html>
+    <body>
+        <h1 style="text-align:center">saber-STL : a "safer" version of STL</h1>
+        <hr/>
+        <br/>
+        <h2>0. Purpose<h2>
+            <h3>1) catch and report fatal runtime error </h3>
+            <p>
+                <div style="overflow:auto;background-color:#F1F1F1;font-size:16px"><code><pre>
+#include &lt;vector&gt;
+#include &lt;iostream&gt;
+...
+
+std::vector&lt;int&gt; vec {2, 1, 4, 7};
+auto begin = vec.begin();
+auto end = vec.end();
+vec.push_back(5); // invalidates iterator end
+
+for (auto it = begin; it != end; ++it) cout &lt;&lt; *it &lt;&lt; endl; // what's the matter?
+                </pre></code></div><br/>
+            </p>
+            <p style="font-family:Arial, Helvetica, sans-serif; font-size:18px">
+                Under such circumstance, the behaviour of std::vector is undefined. however, in much circumanstances, such code still works and prints 2 1 4 7.<br/>
+                The first intention of our saber-STL (safer-STL) is to eliminate this problem. When the iterator is invalidated, trying to access element by that
+                iterator will lead to a STL-PANIC. An error will be issued and then the program stops.
+            </p>
+
+            <h3>2) catch unsuggested usages</h3>
+            <p style="font-family:Arial, Helvetica, sans-serif; font-size:18px">
+                Not only errors but also warning could be issued by saber-STL. For example, when you are trying to copy a container, splice between lists using unequal
+                allocators. Under such circumanstances, saber-STL will issue a STL-WARNING.
+            </p>
+
+            <h3>3) better the template error reporting during template specification</h3>
+            <p style="font-family:Arial, Helvetica, sans-serif; font-size:18px">
+                Consider the following error report:
+            </p>
+            <p>
+                <div style="overflow:auto;background-color:#F1F1F1;font-size:16px"><code><pre>
+In file included from template-error.cpp:2:
+In file included from /usr/bin/../lib/gcc/x86_64-linux-gnu/5.4.0/../../../../include/c++/5.4.0/algorithm:62:
+/usr/bin/../lib/gcc/x86_64-linux-gnu/5.4.0/../../../../include/c++/5.4.0/bits/stl_algo.h:1964:22: error: invalid
+      operands to binary expression ('std::_List_iterator&lt;int&gt;' and 'std::_List_iterator&lt;int&gt;')
+                                std::__lg(__last - __first) * 2,
+                                          ~~~~~~ ^ ~~~~~~~
+/usr/bin/../lib/gcc/x86_64-linux-gnu/5.4.0/../../../../include/c++/5.4.0/bits/stl_algo.h:4698:12: note: in
+      instantiation of function template specialization 'std::__sort&lt;std::_List_iterator&lt;int&gt;,
+      __gnu_cxx::__ops::_Iter_less_iter&gt;' requested here
+      std::__sort(__first, __last, __gnu_cxx::__ops::__iter_less_iter());
+           ^
+template-error.cpp:7:10: note: in instantiation of function template specialization
+      'std::sort&lt;std::_List_iterator&lt;int&gt; &gt;' requested here
+    std::sort(l.begin(), l.end());
+         ^
+/usr/bin/../lib/gcc/x86_64-linux-gnu/5.4.0/../../../../include/c++/5.4.0/bits/stl_bvector.h:208:3: note: candidate
+      function not viable: no known conversion from 'std::_List_iterator&lt;int&gt;' to 'const std::_Bit_iterator_base' for
+      1st argument
+  operator-(const _Bit_iterator_base& __x, const _Bit_iterator_base& __y)
+  ^
+/usr/bin/../lib/gcc/x86_64-linux-gnu/5.4.0/../../../../include/c++/5.4.0/bits/stl_iterator.h:328:5: note: candidate
+      template ignored: could not match 'reverse_iterator' against '_List_iterator'
+    operator-(const reverse_iterator&lt;_Iterator&gt;& __x,
+    ^
+/usr/bin/../lib/gcc/x86_64-linux-gnu/5.4.0/../../../../include/c++/5.4.0/bits/stl_iterator.h:380:5: note: candidate
+      template ignored: could not match 'reverse_iterator' against '_List_iterator'
+    operator-(const reverse_iterator&lt;_IteratorL&gt;& __x,
+    ^
+/usr/bin/../lib/gcc/x86_64-linux-gnu/5.4.0/../../../../include/c++/5.4.0/bits/stl_iterator.h:1138:5: note: candidate
+      template ignored: could not match 'move_iterator' against '_List_iterator'
+    operator-(const move_iterator&lt;_IteratorL&gt;& __x,
+    ^
+/usr/bin/../lib/gcc/x86_64-linux-gnu/5.4.0/../../../../include/c++/5.4.0/bits/stl_iterator.h:1145:5: note: candidate
+      template ignored: could not match 'move_iterator' against '_List_iterator'
+    operator-(const move_iterator&lt;_Iterator&gt;& __x,
+    ^
+In file included from template-error.cpp:2:
+In file included from /usr/bin/../lib/gcc/x86_64-linux-gnu/5.4.0/../../../../include/c++/5.4.0/algorithm:62:
+/usr/bin/../lib/gcc/x86_64-linux-gnu/5.4.0/../../../../include/c++/5.4.0/bits/stl_algo.h:1878:18: error: invalid
+      operands to binary expression ('std::_List_iterator&lt;int&gt;' and 'std::_List_iterator&lt;int&gt;')
+      if (__last - __first &gt; int(_S_threshold))
+          ~~~~~~ ^ ~~~~~~~
+/usr/bin/../lib/gcc/x86_64-linux-gnu/5.4.0/../../../../include/c++/5.4.0/bits/stl_algo.h:1966:9: note: in
+      instantiation of function template specialization 'std::__final_insertion_sort&lt;std::_List_iterator&lt;int&gt;,
+      __gnu_cxx::__ops::_Iter_less_iter&gt;' requested here
+          std::__final_insertion_sort(__first, __last, __comp);
+               ^
+/usr/bin/../lib/gcc/x86_64-linux-gnu/5.4.0/../../../../include/c++/5.4.0/bits/stl_algo.h:4698:12: note: in
+      instantiation of function template specialization 'std::__sort&lt;std::_List_iterator&lt;int&gt;,
+      __gnu_cxx::__ops::_Iter_less_iter&gt;' requested here
+      std::__sort(__first, __last, __gnu_cxx::__ops::__iter_less_iter());
+           ^
+template-error.cpp:7:10: note: in instantiation of function template specialization
+      'std::sort&lt;std::_List_iterator&lt;int&gt; &gt;' requested here
+    std::sort(l.begin(), l.end());
+         ^
+/usr/bin/../lib/gcc/x86_64-linux-gnu/5.4.0/../../../../include/c++/5.4.0/bits/stl_bvector.h:208:3: note: candidate
+      function not viable: no known conversion from 'std::_List_iterator&lt;int&gt;' to 'const std::_Bit_iterator_base' for
+      1st argument
+  operator-(const _Bit_iterator_base& __x, const _Bit_iterator_base& __y)
+  ^
+/usr/bin/../lib/gcc/x86_64-linux-gnu/5.4.0/../../../../include/c++/5.4.0/bits/stl_iterator.h:328:5: note: candidate
+      template ignored: could not match 'reverse_iterator' against '_List_iterator'
+    operator-(const reverse_iterator&lt;_Iterator&gt;& __x,
+    ^
+/usr/bin/../lib/gcc/x86_64-linux-gnu/5.4.0/../../../../include/c++/5.4.0/bits/stl_iterator.h:380:5: note: candidate
+      template ignored: could not match 'reverse_iterator' against '_List_iterator'
+    operator-(const reverse_iterator&lt;_IteratorL&gt;& __x,
+    ^
+/usr/bin/../lib/gcc/x86_64-linux-gnu/5.4.0/../../../../include/c++/5.4.0/bits/stl_iterator.h:1138:5: note: candidate
+      template ignored: could not match 'move_iterator' against '_List_iterator'
+    operator-(const move_iterator&lt;_IteratorL&gt;& __x,
+    ^
+/usr/bin/../lib/gcc/x86_64-linux-gnu/5.4.0/../../../../include/c++/5.4.0/bits/stl_iterator.h:1145:5: note: candidate
+      template ignored: could not match 'move_iterator' against '_List_iterator'
+    operator-(const move_iterator&lt;_Iterator&gt;& __x,
+    ^
+2 errors generated.
+                </pre></code></div>
+            </p>
+            <p style="font-family:Arial, Helvetica, sans-serif; font-size:18px">
+                You could even not image that such a long error report is caused by such a simple code:
+            </p>
+            <p>
+                <div style="overflow:auto;background-color:#F1F1F1;font-size:16px"><code><pre>
+#include &lt;list&gt;
+#include &lt;algorithm&gt;
+
+int main()
+{
+    std::list&lt;int&gt; l {1, 2, 3, 4, 5};
+    std::sort(l.begin(), l.end()); // Actually, std::list&lt;int&gt;::iterator is not RandomAccessIterator
+    return 0;
+}
+                </pre></code></div>
+            </p>
+            <p style="font-family:Arial, Helvetica, sans-serif; font-size:18px">
+                One of the target of saber-STL is to shorten the error report (before the presentation of Concepts), using static_assert 
+                and a series of saber::traits. the error report may be something like this:
+            </p>
+            <p>
+                <div style="overflow:auto;background-color:#F1F1F1;font-size:16px"><code><pre>
+error: static_assert failed "Template argument Iterator is not a random-access iterator type"
+    static_assert(saber::traits::is_random_access_iterator&lt;RandomAccessIterator&gt;::value, C8_STAT__TEMPLATE_ARG__ITER__NOT_RANDOM_ACCESS_ITERATOR);
+    ^             ~~~~~
+                </pre></code></div>
+            </p>
+
+        <h2>1. Implementation</h2>
+            <h3>saber::vector and saber::deque</h3>
+            <p style="font-family:Arial, Helvetica, sans-serif; font-size:18px">
+                These two random-iterable containers maintenance an internal variable "update_count". Each iterator got from the container keeps the update_count
+                when it is retrived and the information of the container.<br/>
+                When trying to access an element by an iterator via its operator*, the operator* checks the related informations. When something gets wrong,
+                it issues a STL-PANIC.<br/>
+                <br/>
+                This will lead to a bogus "bug": saber::vector::push_back and saber::vector::pop_back would invalidate all iterators instead of the past-end 
+                iterator only when size &lt; capacity. However, we think such problem is still acceptable. If you have better suggestions, don't forget to
+                give us an issue!  
+            </p>
+
+            <h3>saber::list, saber::forward_list and saber::set, saber::map</h3>
+            <p style="font-family:Arial, Helvetica, sans-serif; font-size:18px">
+                Each iterator of a list type contains the node information and the container information. The container maintenances an internal hash-set of all nodes.<br/>
+                When trying to access an element by an iterator via its operator*, the iterator rejects the request and issue an STL-PANIC if the node it holds is not in
+                containter's hash-map.<br/>
+                However, we still have to use std::unordered_set since we don't have our own hash-set. This could be solved soon.
+            </p>
+
+        <h2>2. Fixme</h2>
+            <p style="font-family:Arial, Helvetica, sans-serif; font-size:18px">
+                As stated before, there are still many problems in our project saber-STL. If you'd like to contribute to our project, click here:
+                <a href="http://www.github.com/CousinZe/Safe_stl">Saber STL on Github</href>
+            </p>
+    </body>
+</html>
