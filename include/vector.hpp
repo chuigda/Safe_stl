@@ -41,10 +41,11 @@ public:
     explicit vector(const Allocator& _alloc);
     vector(const vector& _another);
     vector(const vector& _another, const allocator_type& _alloc);
-    explicit vector(size_type _n, const allocator_type& _alloc);
+    explicit vector(size_type _n,
+                    const allocator_type& _alloc = Allocator());
     explicit vector(size_type _n,
                     const value_type& _value,
-                    const allocator_type& _alloc);
+                    const allocator_type& _alloc = Allocator());
     vector(vector&& _another);
     vector(vector&& _another, const allocator_type& _alloc);
 
@@ -75,7 +76,7 @@ public:
     void push_back(const T& _element);
     void pop_back(void);
     template <typename... Args>
-    void emplace_back(Args... _args);
+    void emplace_back(Args&&... _args);
     void clear(void);
 
     iterator insert(const_iterator _position, const value_type& _value);
@@ -91,7 +92,7 @@ public:
                     initializer_list<value_type> _list);
 
     template <typename... Args>
-    iterator emplace(const_iterator _position, Args... _args);
+    iterator emplace(const_iterator _position, Args&&... _args);
 
     iterator erase(const_iterator _position);
     iterator erase(const_iterator _begin, const_iterator _end);
@@ -533,11 +534,11 @@ vector<T, Allocator>::pop_back()
 template <typename T, typename Allocator>
 template <typename... Args>
 void
-vector<T, Allocator>::emplace_back(Args... _args)
+vector<T, Allocator>::emplace_back(Args&&... _args)
 {
     if (size() == capacity()) reallocate(capacity() * 2);
 
-    construct(&array[size_val], _args...);
+    construct(&array[size_val], saber::forward<Args>(_args)...);
     ++size_val;
 
     update_vector();
@@ -547,8 +548,7 @@ template <typename T, typename Allocator>
 void
 vector<T, Allocator>::clear()
 {
-    clear_elements();
-    update_vector();
+    erase(cbegin(), cend());
 }
 
 template <typename T, typename Allocator>
@@ -668,10 +668,16 @@ vector<T, Allocator>::insert(const_iterator _position,
 template <typename T, typename Allocator>
 template <typename... Args>
 typename vector<T, Allocator>::iterator
-vector<T, Allocator>::emplace(const_iterator _position, Args... _args)
+vector<T, Allocator>::emplace(const_iterator _position, Args&&... _args)
 {
 
     check_iterator(_position);
+
+    if (empty())
+    {
+        emplace_back(std::forward<Args>(_args)...);
+        return begin();
+    }
 
     if (size() + 1 <= capacity())
     {
@@ -714,9 +720,8 @@ typename vector<T, Allocator>::iterator
 vector<T, Allocator>::erase(const_iterator _position)
 {
     check_iterator(_position);
-    update_vector();
 
-    iterator iter_temp(this, _position.ptr);
+    iterator iter_temp = iterator(_position);
     if (_position + 1 != cend())
     {
         return erase(_position, _position + 1);
@@ -943,7 +948,6 @@ vector<T, Allocator>::check_iterator(const U& _it)
     {
         stl_panic(C8_DYN__ITER__UNKNOWN_REGION_ITERATOR);
     }
-
     _it.version_check();
 }
 
@@ -969,7 +973,8 @@ void vector<T, Allocator>::clear_capacity()
 template <typename T, typename Allocator>
 vector<T, Allocator>::iterator::iterator(
         const typename vector::const_iterator& _const_iter) :
-    iterator(_const_iter.get_from, _const_iter.ptr)
+    iterator(const_cast<vector*>(_const_iter.get_from),
+             const_cast<value_type*>(_const_iter.ptr))
 {}
 
 template <typename T, typename Allocator>

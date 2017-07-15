@@ -214,6 +214,10 @@ template <typename RandomAccessIterator>
 void
 sort(RandomAccessIterator _first, RandomAccessIterator _last)
 {
+    static_assert(
+        saber::traits::is_random_access_iterator<RandomAccessIterator>::value,
+        C8_STAT__TEMPLATE_ARG__ITER__NOT_RANDOM_ACCESS_ITERATOR);
+
     if (!(_first < _last)) return;
 
     RandomAccessIterator mid = _internal_partition(_first, _last);
