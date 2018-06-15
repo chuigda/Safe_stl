@@ -1,4 +1,4 @@
-﻿#include <vector>
+#include <vector>
 #include "vector.hpp"
 
 #include <ctime>
@@ -395,5 +395,35 @@ void testcase_vector_erase_2()
     v2.erase(v2.cbegin()+left_delim, v2.cbegin()+right_delim);
 
     saber::lawaxis(v1.begin(), v1.end(), v2.begin(), v2.end());
+}
+
+int main()
+{
+    testcase_vector_ctor_1();
+    testcase_vector_ctor_2();
+    testcase_vector_ctor_3();
+    testcase_vector_ctor_4();
+
+    testcase_vector_operator_assign_1();
+    testcase_vector_operator_assign_2();
+
+    testcase_vector_assign_1();
+    testcase_vector_assign_2();
+    testcase_vector_assign_3();
+
+    testcase_vector_size();
+    testcase_vector_empty();
+    testcase_vector_push_back_n_pop_back();
+    testcase_vector_emplace_back();
+    testcase_vector_emplace();
+    testcase_vector_clear();
+
+    testcase_vector_insert_1();
+    testcase_vector_insert_2();
+    testcase_vector_insert_3();
+    testcase_vector_insert_4();
+
+    testcase_vector_erase_1();
+    testcase_vector_erase_2();
 }
 

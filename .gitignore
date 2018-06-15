@@ -49,3 +49,6 @@
 
 # Main.cpp for test only
 main.cpp
+
+# Qt CMake user config
+*.user

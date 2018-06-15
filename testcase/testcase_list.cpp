@@ -1,4 +1,4 @@
-﻿#include "list.hpp"
+#include "list.hpp"
 #include <list>
 
 #include <ctime>
@@ -76,3 +76,10 @@ void testcase_list_4()
     saber::lawaxis(l1.begin(), l1.end(), l2.begin(), l2.end());
 }
 
+int main()
+{
+    testcase_list_1();
+    testcase_list_2();
+    testcase_list_3();
+    testcase_list_4();
+}

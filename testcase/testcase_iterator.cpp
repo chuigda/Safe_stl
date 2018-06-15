@@ -1,10 +1,11 @@
 #include <cstdio>
-﻿#include "iterator.hpp"
 #include <vector>
 #include <forward_list>
 #include <list>
 #include <algorithm>
 #include "vector.hpp"
+
+#include "tracer.hpp"
 
 void testcase_iterator()
 {
@@ -95,3 +96,7 @@ void testcase_iterator()
     std::printf("\n\n");
 }
 
+int main()
+{
+    testcase_iterator();
+}

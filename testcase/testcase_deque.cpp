@@ -306,3 +306,37 @@ void testcase_deque_swap()
     saber::lawaxis(v1.begin(), v1.end(), v2.begin(), v2.end());
     saber::lawaxis(v3.begin(), v3.end(), v4.begin(), v4.end());
 }
+
+int main()
+{
+    testcase_deque_ctor_1();
+    testcase_deque_ctor_2();
+    testcase_deque_ctor_3();
+    testcase_deque_ctor_4();
+    testcase_deque_ctor_5();
+
+    testcase_deque_assignment_1();
+    testcase_deque_assignment_2();
+    testcase_deque_assignment_3();
+
+    testcase_deque_assign_1();
+    testcase_deque_assign_2();
+    testcase_deque_assign_3();
+
+    testcase_deque_emplace_front_1();
+    testcase_deque_emplace_front_2();
+
+    testcase_deque_emplace_back_1();
+    testcase_deque_emplace_back_2();
+
+    testcase_deque_emplace();
+
+    testcase_deque_push_back();
+    testcase_deque_push_front();
+    testcase_deque_at();
+    testcase_deque_size();
+    testcase_deque_insert_1();
+    testcase_deque_insert_2();
+
+    testcase_deque_swap();
+}

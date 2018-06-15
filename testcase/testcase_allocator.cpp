@@ -39,3 +39,8 @@ void testcase_allocator()
 
     std::printf("\n\n");
 }
+
+int main() 
+{
+    testcase_allocator();
+}

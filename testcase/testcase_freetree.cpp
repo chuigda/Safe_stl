@@ -1,4 +1,4 @@
-﻿#include "free_tree.hpp"
+#include "free_tree.hpp"
 #include "excalibur.hpp"
 #include <set>
 
@@ -17,4 +17,9 @@ void testcase_freetree()
         sset.insert(r);
     }
     saber::lawaxis(ft.begin(), ft.end(), sset.begin(), sset.end());
+}
+
+int main()
+{
+    testcase_freetree();
 }

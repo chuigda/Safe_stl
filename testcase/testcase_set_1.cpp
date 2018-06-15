@@ -1,4 +1,4 @@
-﻿#include <set>
+#include <set>
 #include "set.hpp"
 #include "excalibur.hpp"
 
@@ -32,4 +32,9 @@ void testcase_set_1()
     s1.erase(--s1.end());
     s2.erase(--s2.end());
     saber::lawaxis(s1.begin(), s1.end(), s2.begin(), s2.end());
+}
+
+int main()
+{
+    testcase_set_1();
 }
